@@ -24,13 +24,28 @@ final class snsUITests: XCTestCase {
 
     @MainActor
     func testExample() throws {
-        // UI tests must launch the application that they test.
         let app = XCUIApplication()
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // XCUIAutomation Documentation
-        // https://developer.apple.com/documentation/xcuiautomation
+        XCTAssertTrue(app.tabBars.buttons["Home"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Network"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Settings"].exists)
+    }
+
+    @MainActor
+    func testNetworkSearchShowsMatchingContact() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.tabBars.buttons["Network"].tap()
+
+        let searchField = app.searchFields["Search for contacts or groups"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+
+        searchField.tap()
+        searchField.typeText("Ava")
+
+        XCTAssertTrue(app.staticTexts["Ava Thompson"].waitForExistence(timeout: 2))
     }
 
     @MainActor
