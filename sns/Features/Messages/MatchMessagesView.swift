@@ -60,7 +60,6 @@ struct MatchMessagesView: View {
         .background(Color.white)
         .navigationTitle(matchName)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
     }
 
     private func sendMessage() {
