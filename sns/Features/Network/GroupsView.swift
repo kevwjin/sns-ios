@@ -6,6 +6,8 @@ struct GroupsView: View {
     @State private var searchText = ""
     @State private var selectedGroupIndex: Int?
     @State private var isEditingGroups = false
+    @State private var editMode: EditMode = .inactive
+    @State private var showPriorityInfo = false
     @State private var showAddGroupAlert = false
     @State private var newGroupName = ""
     @State private var pendingDeleteGroupIndex: Int?
@@ -49,10 +51,24 @@ struct GroupsView: View {
                 }
                 .padding(.vertical, 2)
             }
+            .onMove { fromOffsets, toOffset in
+                guard searchText.isEmpty else { return }
+                groups.move(fromOffsets: fromOffsets, toOffset: toOffset)
+            }
         }
         .listStyle(.plain)
         .searchable(text: $searchText, prompt: "Search Groups")
+        .environment(\.editMode, $editMode)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showPriorityInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                }
+                .accessibilityLabel("Group Priority Info")
+            }
+
             if isEditingGroups {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -67,10 +83,17 @@ struct GroupsView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(isEditingGroups ? "Done" : "Edit") {
                     withAnimation {
-                        isEditingGroups.toggle()
+                        let newValue = !isEditingGroups
+                        isEditingGroups = newValue
+                        editMode = newValue ? .active : .inactive
                     }
                 }
             }
+        }
+        .alert("Group Priority", isPresented: $showPriorityInfo) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Higher-priority groups are favored more when a match is connected through that group.")
         }
         .alert("Add Group", isPresented: $showAddGroupAlert) {
             TextField("Group name", text: $newGroupName)

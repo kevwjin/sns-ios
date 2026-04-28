@@ -3,7 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @State private var viewModel = HomeViewModel()
 
-    let recentActivity: [ActivityItem] = MockData.recentActivity
+    let logbookItems: [ActivityItem] = MockData.logbookItems
 
     var body: some View {
         NavigationStack {
@@ -94,11 +94,11 @@ struct HomeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Recent Activity")
+                    Text("Logbook")
                         .font(.headline)
                         .padding(.bottom, 2)
 
-                    ForEach(recentActivity) { item in
+                    ForEach(logbookItems) { item in
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: item.symbol)
                                 .font(.subheadline)
@@ -138,7 +138,7 @@ struct HomeView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    Text("Who you match with is based on your Preferences.")
+                    Text("Who you match with is based on your match criteria.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 

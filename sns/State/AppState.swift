@@ -11,7 +11,10 @@ final class AppState {
     var preferredGender: String
     var preferredAgeMin: Int
     var preferredAgeMax: Int
-    var fofMatchPolicy: FoFMatchPolicy
+    var matchPolicy: MatchPolicy
+    var matchingLocation: String
+    var matchingRadiusMiles: Int
+    var extendRadiusIfNeeded: Bool
 
     var fofSourceCount: Int {
         contacts.filter(\.useForFoFRecommendations).count
@@ -26,7 +29,10 @@ final class AppState {
         preferredGender: String = "No preference",
         preferredAgeMin: Int = 21,
         preferredAgeMax: Int = 27,
-        fofMatchPolicy: FoFMatchPolicy = .fofReferralOnly
+        matchPolicy: MatchPolicy = .mutualsOnly,
+        matchingLocation: String = "San Francisco, CA",
+        matchingRadiusMiles: Int = 10,
+        extendRadiusIfNeeded: Bool = false
     ) {
         self.myCard = myCard
         self.contacts = contacts
@@ -36,7 +42,10 @@ final class AppState {
         self.preferredGender = preferredGender
         self.preferredAgeMin = preferredAgeMin
         self.preferredAgeMax = preferredAgeMax
-        self.fofMatchPolicy = fofMatchPolicy
+        self.matchPolicy = matchPolicy
+        self.matchingLocation = matchingLocation
+        self.matchingRadiusMiles = matchingRadiusMiles
+        self.extendRadiusIfNeeded = extendRadiusIfNeeded
     }
 
     static func mock() -> AppState {

@@ -189,7 +189,7 @@ struct ContactDetailView: View {
     var body: some View {
         Form {
             Section("Recommendations") {
-                Toggle("Use for FoF recommendations", isOn: $contact.useForFoFRecommendations)
+                Toggle("Use for matching", isOn: $contact.useForFoFRecommendations)
             }
 
             Section("Groups") {

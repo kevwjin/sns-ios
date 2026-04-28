@@ -15,7 +15,7 @@ enum MockData {
         AppGroup(name: "Weekend Hikes", members: [contacts[3], contacts[4]])
     ]
 
-    static let recentActivity: [ActivityItem] = [
+    static let logbookItems: [ActivityItem] = [
         ActivityItem(title: "Enrolled in this week's batch", detail: "You're in for Sunday release.", timestamp: "2h ago", symbol: "checkmark.circle.fill"),
         ActivityItem(title: "Added Ava Thompson", detail: "New contact added to your network.", timestamp: "Yesterday", symbol: "person.badge.plus"),
         ActivityItem(title: "Created Weekend Hikes", detail: "Group now has 5 members.", timestamp: "2d ago", symbol: "person.2.fill"),

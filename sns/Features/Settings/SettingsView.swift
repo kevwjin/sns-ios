@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var appState: AppState
     @State private var showProfileSheet = false
-    @State private var showPreferencesSheet = false
+    @State private var showMatchCriteriaSheet = false
 
     var body: some View {
         NavigationStack {
@@ -26,12 +26,12 @@ struct SettingsView: View {
                     preferenceValueRow(title: "Gender", value: appState.gender)
                 }
 
-                Section("Preferences") {
+                Section("Match Criteria") {
                     Button {
-                        showPreferencesSheet = true
+                        showMatchCriteriaSheet = true
                     } label: {
                         HStack {
-                            Text("Edit Preferences")
+                            Text("Edit Match Criteria")
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.footnote)
@@ -40,11 +40,11 @@ struct SettingsView: View {
                     }
                     .buttonStyle(.plain)
 
-                    preferenceValueRow(title: "Gender", value: appState.preferredGender)
+                    preferenceValueRow(title: "Match With", value: appState.preferredGender)
                     preferenceValueRow(title: "Age Range", value: "\(appState.preferredAgeMin)-\(appState.preferredAgeMax)")
-                    preferenceValueRow(title: "Friend-of-Friend Referral", value: "\(appState.groups.count) ranked groups")
-                    preferenceValueRow(title: "Matching Policy", value: appState.fofMatchPolicy.label)
-                    preferenceValueRow(title: "FoF Contacts Enabled", value: "\(appState.fofSourceCount) contacts")
+                    preferenceValueRow(title: "Location", value: appState.matchingLocation)
+                    preferenceValueRow(title: "Radius", value: "Within \(appState.matchingRadiusMiles) mi")
+                    preferenceValueRow(title: "Match Policy", value: appState.matchPolicy.label)
                 }
 
             }
@@ -55,13 +55,12 @@ struct SettingsView: View {
                     gender: $appState.gender
                 )
             }
-            .sheet(isPresented: $showPreferencesSheet) {
+            .sheet(isPresented: $showMatchCriteriaSheet) {
                 PreferencesView(
                     preferredGender: $appState.preferredGender,
                     preferredAgeMin: $appState.preferredAgeMin,
                     preferredAgeMax: $appState.preferredAgeMax,
-                    fofMatchPolicy: $appState.fofMatchPolicy,
-                    groups: $appState.groups
+                    matchPolicy: $appState.matchPolicy
                 )
             }
         }
@@ -128,16 +127,15 @@ struct PreferencesView: View {
     @Binding var preferredGender: String
     @Binding var preferredAgeMin: Int
     @Binding var preferredAgeMax: Int
-    @Binding var fofMatchPolicy: FoFMatchPolicy
-    @Binding var groups: [AppGroup]
+    @Binding var matchPolicy: MatchPolicy
 
     private let matchGenderOptions = ["Women", "Men", "No preference"]
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Friendship Preferences") {
-                    Picker("Gender", selection: $preferredGender) {
+                Section("Match Criteria") {
+                    Picker("Match With", selection: $preferredGender) {
                         ForEach(matchGenderOptions, id: \.self) { option in
                             Text(option).tag(option)
                         }
@@ -168,26 +166,15 @@ struct PreferencesView: View {
                     }
                 }
 
-                Section("Friend-of-Friend Referral") {
-                    Picker("Match Type", selection: $fofMatchPolicy) {
-                        ForEach(FoFMatchPolicy.allCases, id: \.self) { policy in
+                Section("Mutuals") {
+                    Picker("Match Policy", selection: $matchPolicy) {
+                        ForEach(MatchPolicy.allCases, id: \.self) { policy in
                             Text(policy.label).tag(policy)
-                        }
-                    }
-
-                    NavigationLink {
-                        FoFReferralRankingView(groups: $groups)
-                    } label: {
-                        HStack {
-                            Text("Stack Rank Referral Groups")
-                            Spacer()
-                            Text("\(groups.count)")
-                                .foregroundStyle(.secondary)
                         }
                     }
                 }
             }
-            .navigationTitle("Preferences")
+            .navigationTitle("Match Criteria")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
@@ -196,29 +183,5 @@ struct PreferencesView: View {
                 }
             }
         }
-    }
-}
-
-struct FoFReferralRankingView: View {
-    @Binding var groups: [AppGroup]
-
-    var body: some View {
-        List {
-            Section {
-                ForEach(groups) { group in
-                    HStack(spacing: 12) {
-                        Image(systemName: "line.3.horizontal")
-                            .foregroundStyle(.secondary)
-                        Text(group.name)
-                    }
-                }
-                .onMove { fromOffsets, toOffset in
-                    groups.move(fromOffsets: fromOffsets, toOffset: toOffset)
-                }
-            } footer: {
-                Text("Higher-ranked groups are prioritized as Friend-of-Friend referral sources.")
-            }
-        }
-        .navigationTitle("Referral Ranking")
     }
 }

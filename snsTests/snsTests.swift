@@ -26,7 +26,7 @@ struct snsTests {
         #expect(contact.name == "Unnamed Contact")
     }
 
-    @Test func appStateCountsFoFEnabledContacts() {
+    @Test func appStateCountsEligibleContacts() {
         var enabledContact = AppContact(name: "Ava Thompson")
         var disabledContact = AppContact(name: "Noah Kim")
         disabledContact.useForFoFRecommendations = false
@@ -64,6 +64,31 @@ struct snsTests {
         state.removeContact(contact.id, fromGroupAt: 0)
 
         #expect(state.groups[0].members.isEmpty)
+    }
+
+    @Test func appStateUsesDefaultMatchingCriteria() {
+        let state = AppState.mock()
+
+        #expect(state.matchingLocation == "San Francisco, CA")
+        #expect(state.matchingRadiusMiles == 10)
+        #expect(state.extendRadiusIfNeeded == false)
+        #expect(state.matchPolicy == .mutualsOnly)
+    }
+
+    @Test func appStateUpdatesMatchingRadius() {
+        let state = AppState.mock()
+
+        state.matchingRadiusMiles = 25
+
+        #expect(state.matchingRadiusMiles == 25)
+    }
+
+    @Test func appStateUpdatesRadiusFlexibility() {
+        let state = AppState.mock()
+
+        state.extendRadiusIfNeeded = true
+
+        #expect(state.extendRadiusIfNeeded == true)
     }
 
 }
