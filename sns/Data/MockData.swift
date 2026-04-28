@@ -27,4 +27,39 @@ enum MockData {
         MatchMessage(isFromUser: true, text: "Likewise, hope your week is going well.", timestamp: "9:42 AM"),
         MatchMessage(isFromUser: false, text: "It is! Want to grab coffee tomorrow?", timestamp: "9:43 AM")
     ]
+
+    static let mailThreads: [MailThread] = [
+        MailThread(
+            correspondentName: "Ava Thompson",
+            subject: "Coffee after the batch?",
+            preview: "I might be near Hayes Valley later this week.",
+            timestamp: "Today",
+            isUnread: true,
+            messages: [
+                MailMessage(senderName: "Ava Thompson", body: "I might be near Hayes Valley later this week. Want to find a quiet coffee spot?", timestamp: "Today, 9:12 AM", isFromUser: false),
+                MailMessage(senderName: "Me", body: "That sounds good. Thursday afternoon is easiest for me.", timestamp: "Today, 9:30 AM", isFromUser: true)
+            ]
+        ),
+        MailThread(
+            correspondentName: "Noah Kim",
+            subject: "Intro through Study Group",
+            preview: "Mia said we should compare notes before Sunday.",
+            timestamp: "Yesterday",
+            isUnread: true,
+            messages: [
+                MailMessage(senderName: "Noah Kim", body: "Mia said we should compare notes before Sunday. I can send over a short summary tonight.", timestamp: "Yesterday, 7:44 PM", isFromUser: false)
+            ]
+        ),
+        MailThread(
+            correspondentName: "Liam Chen",
+            subject: "Weekend Hikes route",
+            preview: "The route I mentioned is better early in the morning.",
+            timestamp: "Mon",
+            isUnread: false,
+            messages: [
+                MailMessage(senderName: "Liam Chen", body: "The route I mentioned is better early in the morning. It gets crowded after 10.", timestamp: "Mon, 8:18 AM", isFromUser: false),
+                MailMessage(senderName: "Me", body: "Good call. I will check the trail map before we pick a time.", timestamp: "Mon, 10:05 AM", isFromUser: true)
+            ]
+        )
+    ]
 }
