@@ -15,6 +15,23 @@ enum MockData {
         AppGroup(name: "Weekend Hikes", members: [contacts[3], contacts[4]])
     ]
 
+    static let locationSuggestions: [LocationSuggestion] = [
+        LocationSuggestion(title: "Hayes Valley", subtitle: "San Francisco, CA", keywords: ["94102", "neighborhood", "sf"]),
+        LocationSuggestion(title: "Mission District", subtitle: "San Francisco, CA", keywords: ["94110", "neighborhood", "sf"]),
+        LocationSuggestion(title: "SoMa", subtitle: "San Francisco, CA", keywords: ["94103", "south of market", "neighborhood", "sf"]),
+        LocationSuggestion(title: "123 Market St", subtitle: "San Francisco, CA", keywords: ["94105", "address", "financial district"]),
+        LocationSuggestion(title: "San Francisco", subtitle: "CA", keywords: ["94102", "94103", "94105", "94110", "city", "sf"]),
+        LocationSuggestion(title: "Williamsburg", subtitle: "Brooklyn, NY", keywords: ["11211", "11249", "neighborhood"]),
+        LocationSuggestion(title: "10012", subtitle: "New York, NY", keywords: ["soho", "nolita", "zip"]),
+        LocationSuggestion(title: "Santa Monica", subtitle: "CA", keywords: ["90401", "90402", "city"]),
+        LocationSuggestion(title: "Capitol Hill", subtitle: "Seattle, WA", keywords: ["98102", "neighborhood"]),
+        LocationSuggestion(title: "Wicker Park", subtitle: "Chicago, IL", keywords: ["60622", "neighborhood"])
+    ]
+
+    static func locationSuggestions(matching query: String) -> [LocationSuggestion] {
+        locationSuggestions.filter { $0.matches(query) }
+    }
+
     static let logbookItems: [ActivityItem] = [
         ActivityItem(title: "Enrolled in this week's batch", detail: "You're in for Sunday release.", timestamp: "2h ago", symbol: "checkmark.circle.fill"),
         ActivityItem(title: "Added Ava Thompson", detail: "New contact added to your network.", timestamp: "Yesterday", symbol: "person.badge.plus"),

@@ -91,6 +91,26 @@ struct snsTests {
         #expect(state.extendRadiusIfNeeded == true)
     }
 
+    @Test func locationSuggestionFormatsDisplayName() {
+        let neighborhood = LocationSuggestion(title: "Hayes Valley", subtitle: "San Francisco, CA")
+        let city = LocationSuggestion(title: "San Francisco")
+
+        #expect(neighborhood.displayName == "Hayes Valley, San Francisco, CA")
+        #expect(city.displayName == "San Francisco")
+    }
+
+    @Test func locationSuggestionSearchMatchesMultipleLocationInputs() {
+        #expect(MockData.locationSuggestions(matching: "hayes").contains { $0.title == "Hayes Valley" })
+        #expect(MockData.locationSuggestions(matching: "sf").contains { $0.title == "San Francisco" })
+        #expect(MockData.locationSuggestions(matching: "123 Market").contains { $0.title == "123 Market St" })
+        #expect(MockData.locationSuggestions(matching: "94102").contains { $0.title == "Hayes Valley" })
+    }
+
+    @Test func locationSuggestionSearchIgnoresEmptyQuery() {
+        #expect(MockData.locationSuggestions(matching: "").isEmpty)
+        #expect(MockData.locationSuggestions(matching: "   ").isEmpty)
+    }
+
     @Test func appRouterDefaultsToMatchWithEmptyPaths() {
         let router = AppRouter()
 

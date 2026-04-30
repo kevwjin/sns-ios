@@ -137,6 +137,7 @@ struct RootView: View {
             NavigationLink(value: RootDestination.page(.location)) {
                 valueRow(title: "Location", value: appState.matchingLocation, systemImage: "location.fill")
             }
+            .accessibilityIdentifier("Location Row")
 
             NavigationLink(value: RootDestination.page(.radius)) {
                 valueRow(title: "Radius", value: "Within \(appState.matchingRadiusMiles) mi", systemImage: "scope")

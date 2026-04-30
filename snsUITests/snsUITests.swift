@@ -225,6 +225,54 @@ final class snsUITests: XCTestCase {
     }
 
     @MainActor
+    func testLocationPickerRequiresSuggestionSelection() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Location Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["San Francisco, CA"].exists)
+        app.buttons["Location Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Location"].waitForExistence(timeout: 2))
+        assertRootTabsHidden(in: app)
+
+        let searchField = app.textFields["Address, neighborhood, or zip"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        XCTAssertEqual(app.staticTexts["Current Matching Location"].label, "San Francisco, CA")
+        XCTAssertTrue(app.staticTexts["Choose a suggestion to update your matching location."].exists)
+
+        searchField.tap()
+        app.typeText("Hayes")
+
+        XCTAssertEqual(app.staticTexts["Current Matching Location"].label, "San Francisco, CA")
+        XCTAssertTrue(app.buttons["Location Suggestion Hayes Valley, San Francisco, CA"].waitForExistence(timeout: 2))
+
+        app.buttons["Location Suggestion Hayes Valley, San Francisco, CA"].tap()
+
+        XCTAssertTrue(app.staticTexts["Current Matching Location"].waitForExistence(timeout: 2))
+        XCTAssertEqual(app.staticTexts["Current Matching Location"].label, "Hayes Valley, San Francisco, CA")
+        app.navigationBars["Location"].buttons.firstMatch.tap()
+
+        XCTAssertTrue(app.staticTexts["Hayes Valley, San Francisco, CA"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testLocationPickerShowsNoResultsForUnknownQuery() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Location Row"].waitForExistence(timeout: 2))
+        app.buttons["Location Row"].tap()
+
+        let searchField = app.textFields["Address, neighborhood, or zip"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        searchField.tap()
+        app.typeText("zzzzzz")
+
+        XCTAssertTrue(app.staticTexts["No locations found"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
     func testMatchWithPreferenceOpensFromRoot() throws {
         let app = XCUIApplication()
         app.launch()
