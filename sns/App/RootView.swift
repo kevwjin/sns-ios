@@ -305,27 +305,8 @@ private struct RootSearchView: View {
     @State private var searchText = ""
     @State private var selectedGroupID: AppGroup.ID?
 
-    private var isSearching: Bool {
-        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var filteredPages: [RootSearchPage] {
-        guard isSearching else { return [] }
-        return RootSearchPage.allCases.filter { $0.matches(searchText) }
-    }
-
-    private var filteredContactIDs: [AppContact.ID] {
-        guard isSearching else { return [] }
-        return appState.contacts
-            .filter { $0.name.localizedCaseInsensitiveContains(searchText) }
-            .map(\.id)
-    }
-
-    private var filteredGroupIDs: [AppGroup.ID] {
-        guard isSearching else { return [] }
-        return appState.groups
-            .filter { $0.name.localizedCaseInsensitiveContains(searchText) }
-            .map(\.id)
+    private var rootSearchResults: RootSearchResults {
+        RootSearchIndex.results(for: searchText, in: appState)
     }
 
     var body: some View {
@@ -362,21 +343,21 @@ private struct RootSearchView: View {
 
     @ViewBuilder
     private var searchResults: some View {
-        if !isSearching {
+        if !rootSearchResults.isSearching {
             Section {
                 Text("Search pages, contacts, or groups")
                     .foregroundStyle(.secondary)
             }
-        } else if filteredPages.isEmpty && filteredContactIDs.isEmpty && filteredGroupIDs.isEmpty {
+        } else if rootSearchResults.isEmpty {
             Section {
                 Text("No results")
                     .foregroundStyle(.secondary)
             }
         }
 
-        if !filteredPages.isEmpty {
+        if !rootSearchResults.pages.isEmpty {
             Section("Pages") {
-                ForEach(filteredPages) { page in
+                ForEach(rootSearchResults.pages) { page in
                     NavigationLink(value: RootDestination.page(page)) {
                         valueRow(title: page.title, value: "", systemImage: page.systemImage)
                     }
@@ -385,9 +366,9 @@ private struct RootSearchView: View {
             }
         }
 
-        if !filteredContactIDs.isEmpty {
+        if !rootSearchResults.contactIDs.isEmpty {
             Section("Contacts") {
-                ForEach(filteredContactIDs, id: \.self) { id in
+                ForEach(rootSearchResults.contactIDs, id: \.self) { id in
                     if let contact = contactBinding(for: id) {
                         NavigationLink(value: RootDestination.contact(id)) {
                             valueRow(title: contact.wrappedValue.name, value: "", systemImage: "person.crop.circle.fill")
@@ -397,9 +378,9 @@ private struct RootSearchView: View {
             }
         }
 
-        if !filteredGroupIDs.isEmpty {
+        if !rootSearchResults.groupIDs.isEmpty {
             Section("Groups") {
-                ForEach(filteredGroupIDs, id: \.self) { id in
+                ForEach(rootSearchResults.groupIDs, id: \.self) { id in
                     if let group = groupBinding(for: id) {
                         Button {
                             selectedGroupID = id

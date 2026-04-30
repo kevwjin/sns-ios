@@ -126,6 +126,54 @@ struct snsTests {
         #expect(MockData.locationSuggestions(matching: "   ").isEmpty)
     }
 
+    @Test func rootSearchFindsContactsByName() {
+        let state = AppState.mock()
+        let results = RootSearchIndex.results(for: "Ava", in: state)
+
+        #expect(results.pages.isEmpty)
+        #expect(results.contactIDs == [state.contacts[0].id])
+        #expect(results.groupIDs.isEmpty)
+        #expect(results.isSearching)
+        #expect(!results.isEmpty)
+    }
+
+    @Test func rootSearchFindsGroupsByName() {
+        let state = AppState.mock()
+        let results = RootSearchIndex.results(for: "Study", in: state)
+
+        #expect(results.pages.isEmpty)
+        #expect(results.contactIDs.isEmpty)
+        #expect(results.groupIDs == [state.groups[0].id])
+    }
+
+    @Test func rootSearchFindsPagesByTitleAndKeyword() {
+        let state = AppState.mock()
+        let radiusResults = RootSearchIndex.results(for: "radius", in: state)
+        let inboxResults = RootSearchIndex.results(for: "mail", in: state)
+
+        #expect(radiusResults.pages == [.radius])
+        #expect(inboxResults.pages == [.inbox])
+    }
+
+    @Test func rootSearchTrimsWhitespace() {
+        let state = AppState.mock()
+        let results = RootSearchIndex.results(for: "  Ava  ", in: state)
+
+        #expect(results.query == "Ava")
+        #expect(results.contactIDs == [state.contacts[0].id])
+    }
+
+    @Test func rootSearchHandlesEmptyAndNoResultQueries() {
+        let state = AppState.mock()
+        let emptyResults = RootSearchIndex.results(for: "   ", in: state)
+        let noResults = RootSearchIndex.results(for: "zzzzzz", in: state)
+
+        #expect(!emptyResults.isSearching)
+        #expect(emptyResults.isEmpty)
+        #expect(noResults.isSearching)
+        #expect(noResults.isEmpty)
+    }
+
     @Test func appRouterDefaultsToMatchWithEmptyPaths() {
         let router = AppRouter()
 
