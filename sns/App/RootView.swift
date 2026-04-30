@@ -150,17 +150,20 @@ struct RootView: View {
             }
             .accessibilityIdentifier("Radius Row")
 
-            NavigationLink(value: RootDestination.page(.matchCriteria)) {
+            NavigationLink(value: RootDestination.page(.matchWith)) {
                 valueRow(title: "Match With", value: appState.preferredGender, systemImage: "person.2.circle")
             }
+            .accessibilityIdentifier("Match With Row")
 
-            NavigationLink(value: RootDestination.page(.matchCriteria)) {
+            NavigationLink(value: RootDestination.page(.ageRange)) {
                 valueRow(title: "Age Range", value: "\(appState.preferredAgeMin)-\(appState.preferredAgeMax)", systemImage: "slider.horizontal.3")
             }
+            .accessibilityIdentifier("Age Range Row")
 
-            NavigationLink(value: RootDestination.page(.matchCriteria)) {
+            NavigationLink(value: RootDestination.page(.matchPolicy)) {
                 valueRow(title: "Match Policy", value: appState.matchPolicy.label, systemImage: "person.2.wave.2.fill")
             }
+            .accessibilityIdentifier("Match Policy Row")
         }
 
         Section("Account") {
@@ -268,13 +271,15 @@ struct RootView: View {
                 radiusMiles: $appState.matchingRadiusMiles,
                 extendRadiusIfNeeded: $appState.extendRadiusIfNeeded
             )
-        case .matchCriteria:
-            PreferencesView(
-                preferredGender: $appState.preferredGender,
+        case .matchWith:
+            MatchWithView(preferredGender: $appState.preferredGender)
+        case .ageRange:
+            AgeRangePreferenceView(
                 preferredAgeMin: $appState.preferredAgeMin,
-                preferredAgeMax: $appState.preferredAgeMax,
-                matchPolicy: $appState.matchPolicy
+                preferredAgeMax: $appState.preferredAgeMax
             )
+        case .matchPolicy:
+            MatchPolicyView(matchPolicy: $appState.matchPolicy)
         case .profile:
             ProfileView(age: $appState.age, gender: $appState.gender)
         }
@@ -472,7 +477,9 @@ private enum RootSearchPage: String, CaseIterable, Identifiable {
     case logbook
     case location
     case radius
-    case matchCriteria
+    case matchWith
+    case ageRange
+    case matchPolicy
     case profile
 
     var id: Self { self }
@@ -485,7 +492,9 @@ private enum RootSearchPage: String, CaseIterable, Identifiable {
         case .logbook: "Logbook"
         case .location: "Location"
         case .radius: "Radius"
-        case .matchCriteria: "Match Criteria"
+        case .matchWith: "Match With"
+        case .ageRange: "Age Range"
+        case .matchPolicy: "Match Policy"
         case .profile: "Profile"
         }
     }
@@ -498,7 +507,9 @@ private enum RootSearchPage: String, CaseIterable, Identifiable {
         case .logbook: "checklist"
         case .location: "location.fill"
         case .radius: "scope"
-        case .matchCriteria: "slider.horizontal.3"
+        case .matchWith: "person.2.circle"
+        case .ageRange: "slider.horizontal.3"
+        case .matchPolicy: "person.2.wave.2.fill"
         case .profile: "person.text.rectangle"
         }
     }
@@ -511,7 +522,9 @@ private enum RootSearchPage: String, CaseIterable, Identifiable {
         case .logbook: ["history", "activity", "events"]
         case .location: ["city", "place", "area"]
         case .radius: ["distance", "range", "nearby", "miles"]
-        case .matchCriteria: ["preferences", "criteria", "match", "age", "policy", "gender"]
+        case .matchWith: ["preferences", "criteria", "match", "gender"]
+        case .ageRange: ["preferences", "criteria", "match", "age"]
+        case .matchPolicy: ["preferences", "criteria", "match", "policy", "mutuals"]
         case .profile: ["account", "me", "gender", "age"]
         }
     }

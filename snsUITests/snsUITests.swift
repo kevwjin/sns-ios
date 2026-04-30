@@ -225,6 +225,58 @@ final class snsUITests: XCTestCase {
     }
 
     @MainActor
+    func testMatchWithPreferenceOpensFromRoot() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Match With Row"].waitForExistence(timeout: 2))
+        app.buttons["Match With Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Match With"].waitForExistence(timeout: 2))
+        assertRootTabsHidden(in: app)
+        XCTAssertTrue(app.staticTexts["Match With"].exists)
+        XCTAssertTrue(app.staticTexts["No preference"].exists)
+
+        app.navigationBars["Match With"].buttons.firstMatch.tap()
+
+        XCTAssertTrue(app.buttons["Match With Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.tabBars.buttons["Match"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.tabBars.buttons["Network"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Search"].exists)
+    }
+
+    @MainActor
+    func testAgeRangePreferenceOpensFromRoot() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Age Range Row"].waitForExistence(timeout: 2))
+        app.buttons["Age Range Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Age Range"].waitForExistence(timeout: 2))
+        assertRootTabsHidden(in: app)
+        XCTAssertTrue(app.staticTexts["Age Range"].exists)
+        XCTAssertTrue(app.staticTexts["21-27"].exists)
+        XCTAssertTrue(app.staticTexts["18"].exists)
+        XCTAssertTrue(app.staticTexts["99"].exists)
+        XCTAssertTrue(app.otherElements["Age Range Slider"].exists)
+    }
+
+    @MainActor
+    func testMatchPolicyPreferenceOpensFromRoot() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Match Policy Row"].waitForExistence(timeout: 2))
+        app.buttons["Match Policy Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Match Policy"].waitForExistence(timeout: 2))
+        assertRootTabsHidden(in: app)
+        XCTAssertTrue(app.staticTexts["Match Policy"].exists)
+        XCTAssertTrue(app.staticTexts["Mutuals only"].exists)
+    }
+
+    @MainActor
     func testMailInboxAndThreadOpenFromRoot() throws {
         let app = XCUIApplication()
         app.launch()
