@@ -2,23 +2,20 @@ import SwiftUI
 
 struct RootView: View {
     @State private var appState = AppState.mock()
+    @State private var router = AppRouter()
     @State private var homeViewModel = HomeViewModel()
-    @State private var selectedTab: RootTab = .match
-    @State private var lastContentTab: RootTab = .match
-    @State private var isRootSearchPresented = false
-    @State private var showMailInfo = false
-    @State private var matchPath: [RootDestination] = []
-    @State private var networkPath: [RootDestination] = []
-    @State private var searchPath: [RootDestination] = []
 
     private var unreadMailCount: Int {
         MockData.mailThreads.filter(\.isUnread).count
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: Binding(
+            get: { router.selectedTab },
+            set: { router.select($0) }
+        )) {
             Tab("Match", systemImage: RootTab.match.systemImage, value: RootTab.match) {
-                NavigationStack(path: $matchPath) {
+                NavigationStack(path: $router.matchPath) {
                     List {
                         matchSections
                     }
@@ -45,18 +42,18 @@ struct RootView: View {
                         rootDestination(for: destination)
                     }
                 }
-                .toolbarVisibility(matchPath.isEmpty ? .visible : .hidden, for: .tabBar)
+                .toolbarVisibility(router.matchPath.isEmpty ? .visible : .hidden, for: .tabBar)
             }
 
             Tab("Network", systemImage: RootTab.network.systemImage, value: RootTab.network) {
-                NavigationStack(path: $networkPath) {
+                NavigationStack(path: $router.networkPath) {
                     List {
                         networkSections
                     }
                     .navigationTitle("")
                     .navigationBarTitleDisplayMode(.inline)
                     .listStyle(.insetGrouped)
-                    .alert("Private Mail", isPresented: $showMailInfo) {
+                    .alert("Private Mail", isPresented: privateMailInfoBinding) {
                         Button("OK", role: .cancel) {}
                     } message: {
                         Text("Mail is designed for private, slower messages. Delivery may take longer because messages are routed in a way that avoids exposing direct connection details. Use it like email, not instant chat.")
@@ -65,30 +62,26 @@ struct RootView: View {
                         rootDestination(for: destination)
                     }
                 }
-                .toolbarVisibility(networkPath.isEmpty ? .visible : .hidden, for: .tabBar)
+                .toolbarVisibility(router.networkPath.isEmpty ? .visible : .hidden, for: .tabBar)
             }
 
             Tab("Search", systemImage: RootTab.search.systemImage, value: RootTab.search, role: .search) {
-                NavigationStack(path: $searchPath) {
+                NavigationStack(path: $router.searchPath) {
                     RootSearchView(
                         appState: appState,
-                        isSearchPresented: $isRootSearchPresented
+                        isSearchPresented: $router.isRootSearchPresented
                     ) {
-                        selectedTab = lastContentTab
+                        router.dismissSearch()
                     }
                     .navigationDestination(for: RootDestination.self) { destination in
                         rootDestination(for: destination)
                     }
                 }
-                .toolbarVisibility(searchPath.isEmpty ? .visible : .hidden, for: .tabBar)
+                .toolbarVisibility(router.searchPath.isEmpty ? .visible : .hidden, for: .tabBar)
             }
             .accessibilityIdentifier("Search Tab")
         }
         .tabViewSearchActivation(.searchTabSelection)
-        .onChange(of: selectedTab) { _, newValue in
-            guard newValue != .search else { return }
-            lastContentTab = newValue
-        }
     }
 
     @ViewBuilder
@@ -185,7 +178,7 @@ struct RootView: View {
                 Text("Mail")
                 Spacer()
                 Button {
-                    showMailInfo = true
+                    router.showRootModal(.privateMailInfo)
                 } label: {
                     Image(systemName: "info.circle")
                 }
@@ -231,6 +224,17 @@ struct RootView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.trailing)
         }
+    }
+
+    private var privateMailInfoBinding: Binding<Bool> {
+        Binding(
+            get: { router.activeRootModal == .privateMailInfo },
+            set: { isPresented in
+                if !isPresented {
+                    router.dismissRootModal()
+                }
+            }
+        )
     }
 
     @ViewBuilder
@@ -288,37 +292,6 @@ struct RootView: View {
     private func contactBinding(for id: AppContact.ID) -> Binding<AppContact>? {
         guard let index = appState.contacts.firstIndex(where: { $0.id == id }) else { return nil }
         return $appState.contacts[index]
-    }
-}
-
-private enum RootDestination: Hashable {
-    case page(RootSearchPage)
-    case contact(AppContact.ID)
-    case myCard
-    case matchMessages(String)
-}
-
-private enum RootTab: String, CaseIterable, Identifiable {
-    case match
-    case network
-    case search
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .match: "Match"
-        case .network: "Network"
-        case .search: "Search"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .match: "sparkles"
-        case .network: "person.2.fill"
-        case .search: "magnifyingglass"
-        }
     }
 }
 
@@ -467,73 +440,6 @@ private struct RootSearchView: View {
     private func dismissSearch() {
         searchText = ""
         onDismissSearch()
-    }
-}
-
-private enum RootSearchPage: String, CaseIterable, Identifiable {
-    case inbox
-    case contacts
-    case groups
-    case logbook
-    case location
-    case radius
-    case matchWith
-    case ageRange
-    case matchPolicy
-    case profile
-
-    var id: Self { self }
-
-    var title: String {
-        switch self {
-        case .inbox: "Inbox"
-        case .contacts: "Contacts"
-        case .groups: "Groups"
-        case .logbook: "Logbook"
-        case .location: "Location"
-        case .radius: "Radius"
-        case .matchWith: "Match With"
-        case .ageRange: "Age Range"
-        case .matchPolicy: "Match Policy"
-        case .profile: "Profile"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .inbox: "envelope.fill"
-        case .contacts: "person.2.fill"
-        case .groups: "rectangle.3.group.fill"
-        case .logbook: "checklist"
-        case .location: "location.fill"
-        case .radius: "scope"
-        case .matchWith: "person.2.circle"
-        case .ageRange: "slider.horizontal.3"
-        case .matchPolicy: "person.2.wave.2.fill"
-        case .profile: "person.text.rectangle"
-        }
-    }
-
-    private var keywords: [String] {
-        switch self {
-        case .inbox: ["mail", "message", "messages", "private"]
-        case .contacts: ["people", "person", "friends", "network"]
-        case .groups: ["group", "priority", "mutuals", "referral"]
-        case .logbook: ["history", "activity", "events"]
-        case .location: ["city", "place", "area"]
-        case .radius: ["distance", "range", "nearby", "miles"]
-        case .matchWith: ["preferences", "criteria", "match", "gender"]
-        case .ageRange: ["preferences", "criteria", "match", "age"]
-        case .matchPolicy: ["preferences", "criteria", "match", "policy", "mutuals"]
-        case .profile: ["account", "me", "gender", "age"]
-        }
-    }
-
-    func matches(_ query: String) -> Bool {
-        let normalizedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedQuery.isEmpty else { return false }
-        return title.localizedCaseInsensitiveContains(normalizedQuery)
-            || keywords.contains { $0.localizedCaseInsensitiveContains(normalizedQuery) }
     }
 }
 
