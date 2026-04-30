@@ -101,6 +101,7 @@ struct RootView: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("Batch Info")
                 }
 
                 SlideToEnrollControl(
@@ -463,11 +464,15 @@ private struct BatchInfoSheet: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
+            Text("For this MVP mock, matched users are assigned either a cafe or walk activity at a vetted San Francisco spot.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .presentationDetents([.fraction(0.3)])
+        .presentationDetents([.fraction(0.36)])
         .presentationDragIndicator(.visible)
     }
 }

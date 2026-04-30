@@ -16,21 +16,90 @@ enum MockData {
     ]
 
     static let locationSuggestions: [LocationSuggestion] = [
-        LocationSuggestion(title: "Hayes Valley", subtitle: "San Francisco, CA", keywords: ["94102", "neighborhood", "sf"]),
-        LocationSuggestion(title: "Mission District", subtitle: "San Francisco, CA", keywords: ["94110", "neighborhood", "sf"]),
-        LocationSuggestion(title: "SoMa", subtitle: "San Francisco, CA", keywords: ["94103", "south of market", "neighborhood", "sf"]),
-        LocationSuggestion(title: "123 Market St", subtitle: "San Francisco, CA", keywords: ["94105", "address", "financial district"]),
-        LocationSuggestion(title: "San Francisco", subtitle: "CA", keywords: ["94102", "94103", "94105", "94110", "city", "sf"]),
-        LocationSuggestion(title: "Williamsburg", subtitle: "Brooklyn, NY", keywords: ["11211", "11249", "neighborhood"]),
-        LocationSuggestion(title: "10012", subtitle: "New York, NY", keywords: ["soho", "nolita", "zip"]),
-        LocationSuggestion(title: "Santa Monica", subtitle: "CA", keywords: ["90401", "90402", "city"]),
-        LocationSuggestion(title: "Capitol Hill", subtitle: "Seattle, WA", keywords: ["98102", "neighborhood"]),
-        LocationSuggestion(title: "Wicker Park", subtitle: "Chicago, IL", keywords: ["60622", "neighborhood"])
+        LocationSuggestion(
+            title: "Hayes Valley",
+            subtitle: "San Francisco, CA",
+            neighborhoodName: "Hayes Valley",
+            latitude: 37.7767,
+            longitude: -122.4241,
+            keywords: ["94102", "neighborhood", "sf"]
+        ),
+        LocationSuggestion(
+            title: "Mission District",
+            subtitle: "San Francisco, CA",
+            neighborhoodName: "Mission District",
+            latitude: 37.7599,
+            longitude: -122.4148,
+            keywords: ["94110", "mission", "neighborhood", "sf"]
+        ),
+        LocationSuggestion(
+            title: "SoMa",
+            subtitle: "San Francisco, CA",
+            neighborhoodName: "SoMa",
+            latitude: 37.7785,
+            longitude: -122.4056,
+            keywords: ["94103", "south of market", "neighborhood", "sf"]
+        ),
+        LocationSuggestion(
+            title: "123 Market St",
+            subtitle: "San Francisco, CA",
+            neighborhoodName: "Financial District",
+            latitude: 37.7936,
+            longitude: -122.3965,
+            keywords: ["94105", "address", "financial district", "market street", "sf"]
+        ),
+        LocationSuggestion(
+            title: "San Francisco",
+            subtitle: "CA",
+            neighborhoodName: "SoMa",
+            latitude: 37.7785,
+            longitude: -122.4056,
+            keywords: ["94102", "94103", "94105", "94110", "city", "sf"]
+        ),
+        LocationSuggestion(
+            title: "North Beach",
+            subtitle: "San Francisco, CA",
+            neighborhoodName: "North Beach",
+            latitude: 37.8061,
+            longitude: -122.4103,
+            keywords: ["94133", "neighborhood", "sf"]
+        ),
+        LocationSuggestion(
+            title: "Marina",
+            subtitle: "San Francisco, CA",
+            neighborhoodName: "Marina",
+            latitude: 37.8037,
+            longitude: -122.4368,
+            keywords: ["94123", "marina district", "neighborhood", "sf"]
+        ),
+        LocationSuggestion(
+            title: "Inner Sunset",
+            subtitle: "San Francisco, CA",
+            neighborhoodName: "Inner Sunset",
+            latitude: 37.7607,
+            longitude: -122.4676,
+            keywords: ["94122", "sunset", "neighborhood", "sf"]
+        )
     ]
 
     static func locationSuggestions(matching query: String) -> [LocationSuggestion] {
         locationSuggestions.filter { $0.matches(query) }
     }
+
+    static func locationSuggestion(forNeighborhood neighborhoodName: String) -> LocationSuggestion? {
+        locationSuggestions.first { $0.neighborhoodName == neighborhoodName }
+    }
+
+    static let vettedMeetingLocations: [VettedMeetingLocation] = [
+        VettedMeetingLocation(name: "Hayes Cafe Mock Spot", neighborhoodName: "Hayes Valley", activityType: .cafe, detail: "Indoor public seating"),
+        VettedMeetingLocation(name: "Hayes Green Mock Walk", neighborhoodName: "Hayes Valley", activityType: .walk, detail: "Daytime public route"),
+        VettedMeetingLocation(name: "Mission Cafe Mock Spot", neighborhoodName: "Mission District", activityType: .cafe, detail: "Transit-adjacent"),
+        VettedMeetingLocation(name: "Mission Plaza Mock Walk", neighborhoodName: "Mission District", activityType: .walk, detail: "Daytime public route"),
+        VettedMeetingLocation(name: "SoMa Cafe Mock Spot", neighborhoodName: "SoMa", activityType: .cafe, detail: "Central SF option"),
+        VettedMeetingLocation(name: "SoMa Promenade Mock Walk", neighborhoodName: "SoMa", activityType: .walk, detail: "Daytime public route"),
+        VettedMeetingLocation(name: "FiDi Cafe Mock Spot", neighborhoodName: "Financial District", activityType: .cafe, detail: "Weekday-friendly"),
+        VettedMeetingLocation(name: "FiDi Waterfront Mock Walk", neighborhoodName: "Financial District", activityType: .walk, detail: "Daytime public route")
+    ]
 
     static let logbookItems: [ActivityItem] = [
         ActivityItem(title: "Enrolled in this week's batch", detail: "You're in for Sunday release.", timestamp: "2h ago", symbol: "checkmark.circle.fill"),

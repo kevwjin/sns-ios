@@ -1,4 +1,5 @@
 import SwiftUI
+import MapKit
 
 struct MatchingLocationView: View {
     @Binding var location: String
@@ -10,6 +11,10 @@ struct MatchingLocationView: View {
 
     private var isSearching: Bool {
         !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var selectedSuggestion: LocationSuggestion? {
+        MockData.locationSuggestion(forNeighborhood: location)
     }
 
     var body: some View {
@@ -25,6 +30,21 @@ struct MatchingLocationView: View {
                 }
             } header: {
                 Text("Matching Location")
+            } footer: {
+                Text("Matching uses neighborhood-level location, not your exact address.")
+            }
+
+            if let selectedSuggestion {
+                Section {
+                    NeighborhoodMapPreview(suggestion: selectedSuggestion)
+                        .frame(height: 160)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .accessibilityIdentifier("Neighborhood Map Preview")
+                } header: {
+                    Text("Neighborhood Preview")
+                } footer: {
+                    Text("The map is a non-interactive preview of the matching neighborhood.")
+                }
             }
 
             Section {
@@ -48,7 +68,7 @@ struct MatchingLocationView: View {
                     } else {
                         ForEach(suggestions) { suggestion in
                             Button {
-                                location = suggestion.displayName
+                                location = suggestion.neighborhoodName
                                 query = ""
                             } label: {
                                 HStack(spacing: 12) {
@@ -64,6 +84,9 @@ struct MatchingLocationView: View {
                                                 .font(.subheadline)
                                                 .foregroundStyle(.secondary)
                                         }
+                                        Text(suggestion.neighborhoodMappingDescription)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
                                     }
 
                                     Spacer()
@@ -80,5 +103,31 @@ struct MatchingLocationView: View {
             }
         }
         .navigationTitle("Location")
+    }
+}
+
+private struct NeighborhoodMapPreview: View {
+    let suggestion: LocationSuggestion
+
+    private var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: suggestion.latitude, longitude: suggestion.longitude)
+    }
+
+    private var region: MKCoordinateRegion {
+        MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.025, longitudeDelta: 0.025)
+        )
+    }
+
+    var body: some View {
+        Map(
+            position: .constant(.region(region)),
+            interactionModes: []
+        ) {
+            Marker(suggestion.neighborhoodName, coordinate: coordinate)
+        }
+        .mapControlVisibility(.hidden)
+        .allowsHitTesting(false)
     }
 }

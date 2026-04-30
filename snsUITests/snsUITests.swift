@@ -230,7 +230,7 @@ final class snsUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.buttons["Location Row"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["San Francisco, CA"].exists)
+        XCTAssertTrue(app.staticTexts["SoMa"].exists)
         app.buttons["Location Row"].tap()
 
         XCTAssertTrue(app.navigationBars["Location"].waitForExistence(timeout: 2))
@@ -238,22 +238,37 @@ final class snsUITests: XCTestCase {
 
         let searchField = app.textFields["Address, neighborhood, or zip"]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
-        XCTAssertEqual(app.staticTexts["Current Matching Location"].label, "San Francisco, CA")
+        XCTAssertEqual(app.staticTexts["Current Matching Location"].label, "SoMa")
+        XCTAssertTrue(app.otherElements["Neighborhood Map Preview"].exists)
+        XCTAssertTrue(app.staticTexts["Matching uses neighborhood-level location, not your exact address."].exists)
         XCTAssertTrue(app.staticTexts["Choose a suggestion to update your matching location."].exists)
 
         searchField.tap()
-        app.typeText("Hayes")
+        app.typeText("123 Market")
 
-        XCTAssertEqual(app.staticTexts["Current Matching Location"].label, "San Francisco, CA")
-        XCTAssertTrue(app.buttons["Location Suggestion Hayes Valley, San Francisco, CA"].waitForExistence(timeout: 2))
+        XCTAssertEqual(app.staticTexts["Current Matching Location"].label, "SoMa")
+        XCTAssertTrue(app.buttons["Location Suggestion 123 Market St, San Francisco, CA"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Maps to Financial District"].exists)
 
-        app.buttons["Location Suggestion Hayes Valley, San Francisco, CA"].tap()
+        app.buttons["Location Suggestion 123 Market St, San Francisco, CA"].tap()
 
         XCTAssertTrue(app.staticTexts["Current Matching Location"].waitForExistence(timeout: 2))
-        XCTAssertEqual(app.staticTexts["Current Matching Location"].label, "Hayes Valley, San Francisco, CA")
+        XCTAssertEqual(app.staticTexts["Current Matching Location"].label, "Financial District")
         app.navigationBars["Location"].buttons.firstMatch.tap()
 
-        XCTAssertTrue(app.staticTexts["Hayes Valley, San Francisco, CA"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Financial District"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testBatchInfoExplainsMockActivityAssignment() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Batch Info"].waitForExistence(timeout: 2))
+        app.buttons["Batch Info"].tap()
+
+        XCTAssertTrue(app.staticTexts["Batch Info"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["For this MVP mock, matched users are assigned either a cafe or walk activity at a vetted San Francisco spot."].exists)
     }
 
     @MainActor

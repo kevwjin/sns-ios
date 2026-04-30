@@ -69,7 +69,7 @@ struct snsTests {
     @Test func appStateUsesDefaultMatchingCriteria() {
         let state = AppState.mock()
 
-        #expect(state.matchingLocation == "San Francisco, CA")
+        #expect(state.matchingLocation == "SoMa")
         #expect(state.matchingRadiusMiles == 10)
         #expect(state.extendRadiusIfNeeded == false)
         #expect(state.matchPolicy == .mutualsOnly)
@@ -99,11 +99,26 @@ struct snsTests {
         #expect(city.displayName == "San Francisco")
     }
 
+    @Test func locationSuggestionCarriesNeighborhoodMapping() {
+        let marketStreet = MockData.locationSuggestions(matching: "123 Market").first { $0.title == "123 Market St" }
+        let city = MockData.locationSuggestions(matching: "San Francisco").first { $0.title == "San Francisco" }
+
+        #expect(marketStreet?.neighborhoodName == "Financial District")
+        #expect(marketStreet?.neighborhoodMappingDescription == "Maps to Financial District")
+        #expect(city?.neighborhoodName == "SoMa")
+    }
+
     @Test func locationSuggestionSearchMatchesMultipleLocationInputs() {
         #expect(MockData.locationSuggestions(matching: "hayes").contains { $0.title == "Hayes Valley" })
         #expect(MockData.locationSuggestions(matching: "sf").contains { $0.title == "San Francisco" })
         #expect(MockData.locationSuggestions(matching: "123 Market").contains { $0.title == "123 Market St" })
         #expect(MockData.locationSuggestions(matching: "94102").contains { $0.title == "Hayes Valley" })
+    }
+
+    @Test func locationSuggestionSearchIsSanFranciscoOnly() {
+        #expect(MockData.locationSuggestions(matching: "Brooklyn").isEmpty)
+        #expect(MockData.locationSuggestions(matching: "Santa Monica").isEmpty)
+        #expect(MockData.locationSuggestions(matching: "Seattle").isEmpty)
     }
 
     @Test func locationSuggestionSearchIgnoresEmptyQuery() {

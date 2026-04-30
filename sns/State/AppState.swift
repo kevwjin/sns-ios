@@ -30,7 +30,7 @@ final class AppState {
         preferredAgeMin: Int = 21,
         preferredAgeMax: Int = 27,
         matchPolicy: MatchPolicy = .mutualsOnly,
-        matchingLocation: String = "San Francisco, CA",
+        matchingLocation: String = "SoMa",
         matchingRadiusMiles: Int = 10,
         extendRadiusIfNeeded: Bool = false
     ) {
