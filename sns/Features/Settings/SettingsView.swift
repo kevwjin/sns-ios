@@ -75,8 +75,6 @@ struct ProfileTabView: View {
                 .accessibilityIdentifier("Logbook Row")
             }
         }
-        .navigationTitle("Profile")
-        .navigationBarTitleDisplayMode(.inline)
         .listStyle(.insetGrouped)
     }
 
