@@ -488,6 +488,10 @@ private struct WeeklyAvailabilityEditor: View {
 
             if let weekRange = WeeklyAvailabilityCalendar.currentWeekDateRange(calendar: calendar) {
                 VStack(alignment: .leading, spacing: 0) {
+                    Text("Available Days")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
                     MultiDatePicker(
                         "Available Days",
                         selection: selectedDateComponents,
