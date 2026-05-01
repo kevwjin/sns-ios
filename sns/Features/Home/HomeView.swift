@@ -72,21 +72,9 @@ struct HomeView: View {
                     }
 
                     if viewModel.hasMatchThisWeek {
-                        NavigationLink {
-                            MatchMessagesView(matchName: viewModel.simulatedMatchName)
-                        } label: {
-                            HStack {
-                                Text(viewModel.simulatedMatchName)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.primary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.footnote)
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .padding(.vertical, 2)
-                        }
-                        .buttonStyle(.plain)
+                        Text("A match profile is ready.")
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
                     } else {
                         Text("No match for the previous week.")
                             .font(.subheadline)

@@ -6,11 +6,9 @@ final class AppRouter {
     var selectedTab: RootTab = .match
     var lastContentTab: RootTab = .match
     var matchPath: [RootDestination] = []
-    var networkPath: [RootDestination] = []
     var profilePath: [RootDestination] = []
     var searchPath: [RootDestination] = []
     var isRootSearchPresented = false
-    var activeRootModal: RootModal?
 
     func select(_ tab: RootTab) {
         selectedTab = tab
@@ -29,8 +27,6 @@ final class AppRouter {
         switch source ?? selectedTab {
         case .match:
             matchPath.append(destination)
-        case .network:
-            networkPath.append(destination)
         case .profile:
             profilePath.append(destination)
         case .search:
@@ -50,16 +46,8 @@ final class AppRouter {
         open(.myCard, from: source)
     }
 
-    func openMatchMessages(_ matchName: String, from source: RootTab? = nil) {
-        open(.matchMessages(matchName), from: source)
-    }
-
-    func showRootModal(_ modal: RootModal) {
-        activeRootModal = modal
-    }
-
-    func dismissRootModal() {
-        activeRootModal = nil
+    func openMatchCriteria(from source: RootTab? = nil) {
+        open(.matchCriteria, from: source)
     }
 
     func startOnboarding() {
@@ -76,16 +64,13 @@ enum RootDestination: Hashable {
     case profileField(ProfileField)
     case contact(AppContact.ID)
     case myCard
-    case matchMessages(String)
-}
-
-enum RootModal: Hashable {
-    case privateMailInfo
+    case matchCriteria
+    case weeklyBatchAvailability
+    case weeklyBatchEnroll
 }
 
 enum RootTab: String, CaseIterable, Identifiable {
     case match
-    case network
     case profile
     case search
 
@@ -94,7 +79,6 @@ enum RootTab: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .match: "Match"
-        case .network: "Network"
         case .profile: "Profile"
         case .search: "Search"
         }
@@ -103,7 +87,6 @@ enum RootTab: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .match: "sparkles"
-        case .network: "person.2.fill"
         case .profile: "person.crop.circle"
         case .search: "magnifyingglass"
         }
@@ -111,7 +94,6 @@ enum RootTab: String, CaseIterable, Identifiable {
 }
 
 enum RootSearchPage: String, CaseIterable, Identifiable {
-    case inbox
     case contacts
     case groups
     case logbook
@@ -128,7 +110,6 @@ enum RootSearchPage: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .inbox: "Inbox"
         case .contacts: "Contacts"
         case .groups: "Groups"
         case .logbook: "Logbook"
@@ -145,24 +126,22 @@ enum RootSearchPage: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
-        case .inbox: "envelope.fill"
         case .contacts: "person.2.fill"
         case .groups: "rectangle.3.group.fill"
         case .logbook: "checklist"
         case .location: "location.fill"
         case .radius: "scope"
-        case .matchWith: "person.2.circle"
+        case .matchWith: "person.fill"
         case .sexuality: "heart.circle"
-        case .substanceUse: "checklist"
-        case .ageRange: "slider.horizontal.3"
-        case .matchPolicy: "person.2.wave.2.fill"
+        case .substanceUse: "leaf"
+        case .ageRange: "birthday.cake.fill"
+        case .matchPolicy: "checkmark.shield.fill"
         case .profile: "person.text.rectangle"
         }
     }
 
     private var keywords: [String] {
         switch self {
-        case .inbox: ["mail", "message", "messages", "private"]
         case .contacts: ["people", "person", "friends", "network"]
         case .groups: ["group", "priority", "mutuals", "referral"]
         case .logbook: ["history", "activity", "events"]

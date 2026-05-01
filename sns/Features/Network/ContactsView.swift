@@ -18,25 +18,6 @@ struct ContactsView: View {
 
     var body: some View {
         List {
-            NavigationLink {
-                ContactDetailView(contact: $appState.myCard, groups: $appState.groups)
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(appState.myCard.name)
-                            .foregroundStyle(.primary)
-                        Text("My Card")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-
             ForEach(groupedContacts, id: \.key) { section in
                 Text(section.key)
                     .font(.caption)

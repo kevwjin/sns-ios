@@ -1,13 +1,10 @@
+import Combine
 import SwiftUI
 
 struct RootView: View {
     @State private var appState = AppState.mock()
     @State private var router = AppRouter()
     @State private var homeViewModel = HomeViewModel()
-
-    private var unreadMailCount: Int {
-        MockData.mailThreads.filter(\.isUnread).count
-    }
 
     var body: some View {
         TabView(selection: Binding(
@@ -25,16 +22,6 @@ struct RootView: View {
                     .sheet(isPresented: $homeViewModel.showBatchInfoSheet) {
                         BatchInfoSheet(batchEndsAtText: homeViewModel.batchEndsAtText)
                     }
-                    .alert("Confirm Enrollment", isPresented: $homeViewModel.showEnrollConfirmation) {
-                        Button("Cancel", role: .cancel) {
-                            homeViewModel.cancelEnrollment()
-                        }
-                        Button("Confirm Enroll") {
-                            homeViewModel.confirmEnrollment()
-                        }
-                    } message: {
-                        Text("This action cannot be undone.")
-                    }
                     .onDisappear {
                         homeViewModel.cancelMatchSimulation()
                     }
@@ -43,26 +30,6 @@ struct RootView: View {
                     }
                 }
                 .toolbarVisibility(router.matchPath.isEmpty ? .visible : .hidden, for: .tabBar)
-            }
-
-            Tab("Network", systemImage: RootTab.network.systemImage, value: RootTab.network) {
-                NavigationStack(path: $router.networkPath) {
-                    List {
-                        networkSections
-                    }
-                    .navigationTitle("")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .listStyle(.insetGrouped)
-                    .alert("Private Mail", isPresented: privateMailInfoBinding) {
-                        Button("OK", role: .cancel) {}
-                    } message: {
-                        Text("Mail is designed for private, slower messages. Delivery may take longer because messages are routed in a way that avoids exposing direct connection details. Use it like email, not instant chat.")
-                    }
-                    .navigationDestination(for: RootDestination.self) { destination in
-                        rootDestination(for: destination)
-                    }
-                }
-                .toolbarVisibility(router.networkPath.isEmpty ? .visible : .hidden, for: .tabBar)
             }
 
             Tab("Profile", systemImage: RootTab.profile.systemImage, value: RootTab.profile) {
@@ -96,117 +63,159 @@ struct RootView: View {
 
     @ViewBuilder
     private var matchSections: some View {
-        Section("This Week") {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 8) {
-                    Label("Weekly Batch", systemImage: "calendar.badge.clock")
-                        .font(.headline)
-
-                    Spacer()
-
-                    Button {
-                        homeViewModel.showBatchInfoSheet = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("Batch Info")
-                }
-
-                WeeklyAvailabilityEditor(
-                    appState: appState,
-                    isLocked: homeViewModel.isEnrolledInBatch
-                )
-
-                Divider()
-                    .padding(.vertical, 2)
-
-                SlideToEnrollControl(
-                    isEnrolledInBatch: homeViewModel.isEnrolledInBatch,
-                    isEnabled: appState.hasCompleteWeeklyAvailability,
-                    resetTrigger: homeViewModel.sliderResetTrigger
-                ) {
-                    homeViewModel.showEnrollConfirmation = true
-                }
-
-                Text(batchEnrollmentStatusText)
-                    .font(.subheadline)
-                    .foregroundStyle(homeViewModel.isEnrolledInBatch ? .green : .secondary)
-            }
-            .padding(.vertical, 6)
-
-            if homeViewModel.hasMatchThisWeek {
-                NavigationLink(value: RootDestination.matchMessages(homeViewModel.simulatedMatchName)) {
-                    valueRow(
-                        title: "Current Match",
-                        value: homeViewModel.simulatedMatchName,
-                        systemImage: "message.fill"
-                    )
-                }
-            } else {
-                valueRow(
-                    title: "Current Match",
-                    value: "No match yet",
-                    systemImage: "message"
-                )
-            }
-        }
-    }
-
-    private var batchEnrollmentStatusText: String {
-        if homeViewModel.isEnrolledInBatch {
-            return "You're enrolled for this week."
-        }
-
-        if appState.hasCompleteWeeklyAvailability {
-            return "Enrolling is final and cannot be undone."
-        }
-
-        return "Add at least one available time window before enrolling."
-    }
-
-    @ViewBuilder
-    private var networkSections: some View {
         Section {
-            NavigationLink(value: RootDestination.page(.inbox)) {
-                valueRow(title: "Inbox", value: "\(unreadMailCount) unread", systemImage: "envelope.fill")
+            matchHero
+                .listRowSeparator(.hidden)
+        }
+
+        Section {
+            NavigationLink(value: RootDestination.weeklyBatchAvailability) {
+                weeklyBatchRow
             }
-            .accessibilityIdentifier("Mail Inbox Row")
+            .accessibilityIdentifier("Weekly Batch Row")
+
+            NavigationLink(value: RootDestination.matchCriteria) {
+                valueRow(
+                    title: "Match Criteria",
+                    value: appState.acceptedSubstanceUseSummary,
+                    systemImage: "slider.horizontal.3"
+                )
+            }
+            .accessibilityIdentifier("Match Criteria Row")
         } header: {
             HStack {
-                Text("Mail")
+                Text("This Week")
                 Spacer()
                 Button {
-                    router.showRootModal(.privateMailInfo)
+                    homeViewModel.showBatchInfoSheet = true
                 } label: {
                     Image(systemName: "info.circle")
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Private Mail Info")
+                .accessibilityIdentifier("Batch Info")
             }
         }
 
-        Section("Network") {
-            NavigationLink(value: RootDestination.myCard) {
-                valueRow(title: "My Card", value: appState.myCard.name, systemImage: "person.crop.circle.fill")
+        networkSection
+    }
+
+    @ViewBuilder
+    private var matchHero: some View {
+        if homeViewModel.hasMatchThisWeek {
+            anonymousMatchProfile(profile: homeViewModel.matchProfile)
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: "tray")
+                    .font(.system(size: 54, weight: .light))
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("No Match Mailbox Icon")
+                    .accessibilityIdentifier("No Match Mailbox Icon")
+
+                VStack(spacing: 4) {
+                    Text("No match yet")
+                        .font(.headline)
+                    Text("Your weekly match will appear here after release.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+            .accessibilityIdentifier("No Match Empty State")
+        }
+    }
+
+    private func anonymousMatchProfile(profile: AnonymousMatchProfile) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.16))
+                    Image(systemName: "person.fill")
+                        .font(.title2)
+                        .foregroundStyle(Color.accentColor)
+                }
+                .frame(width: 52, height: 52)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("This week's match")
+                        .font(.headline)
+                    Text("\(profile.age) · \(profile.pronouns) · \(profile.neighborhood)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
 
+            Text(profile.bio)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 8) {
+                ForEach(profile.interests, id: \.self) { interest in
+                    Text(interest)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Color.secondary.opacity(0.12), in: Capsule())
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .accessibilityIdentifier("Anonymous Match Profile")
+    }
+
+    private var weeklyBatchRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "calendar.badge.clock")
+                .foregroundStyle(.secondary)
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Weekly Batch")
+                if appState.hasCompleteWeeklyAvailability || homeViewModel.isEnrolledInBatch {
+                    Text(appState.weeklyAvailabilitySummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            Text(weeklyBatchStatusText)
+                .foregroundStyle(homeViewModel.isEnrolledInBatch ? .green : .secondary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    private var weeklyBatchStatusText: String {
+        if homeViewModel.isEnrolledInBatch {
+            return "Enrolled"
+        }
+
+        if appState.hasCompleteWeeklyAvailability {
+            return "Ready to enroll"
+        }
+
+        return "Set availability"
+    }
+
+    private func adaptiveAvailabilityGridHeight(for containerHeight: CGFloat) -> CGFloat {
+        let reservedHeight: CGFloat = 260
+        return min(max(containerHeight - reservedHeight, 360), 560)
+    }
+
+    private var networkSection: some View {
+        Section("Network") {
             NavigationLink(value: RootDestination.page(.contacts)) {
                 valueRow(title: "Contacts", value: "\(appState.contacts.count)", systemImage: "person.2.fill")
             }
+            .accessibilityIdentifier("Contacts Row")
 
             NavigationLink(value: RootDestination.page(.groups)) {
                 valueRow(title: "Groups", value: "\(appState.groups.count)", systemImage: "rectangle.3.group.fill")
             }
             .accessibilityIdentifier("Groups Row")
-        }
-
-        Section("Logbook") {
-            NavigationLink(value: RootDestination.page(.logbook)) {
-                valueRow(title: "Logbook", value: "\(MockData.logbookItems.count) events", systemImage: "checklist")
-            }
-            .accessibilityIdentifier("Logbook Row")
         }
     }
 
@@ -226,17 +235,6 @@ struct RootView: View {
         }
     }
 
-    private var privateMailInfoBinding: Binding<Bool> {
-        Binding(
-            get: { router.activeRootModal == .privateMailInfo },
-            set: { isPresented in
-                if !isPresented {
-                    router.dismissRootModal()
-                }
-            }
-        )
-    }
-
     @ViewBuilder
     private func rootDestination(for destination: RootDestination) -> some View {
         switch destination {
@@ -251,17 +249,31 @@ struct RootView: View {
                 Text("Contact unavailable")
             }
         case .myCard:
-            ContactDetailView(contact: $appState.myCard, groups: $appState.groups)
-        case .matchMessages(let matchName):
-            MatchMessagesView(matchName: matchName)
+            MyCardDetailView(contact: $appState.myCard)
+        case .matchCriteria:
+            MatchCriteriaView(appState: appState)
+        case .weeklyBatchAvailability:
+            WeeklyBatchAvailabilityView(
+                appState: appState,
+                isEnrolledInBatch: homeViewModel.isEnrolledInBatch
+            ) {
+                router.open(.weeklyBatchEnroll, from: .match)
+            }
+        case .weeklyBatchEnroll:
+            WeeklyBatchEnrollView(
+                appState: appState,
+                isEnrolledInBatch: homeViewModel.isEnrolledInBatch,
+                resetTrigger: homeViewModel.sliderResetTrigger
+            ) {
+                homeViewModel.confirmEnrollment()
+                router.matchPath = [.weeklyBatchAvailability]
+            }
         }
     }
 
     @ViewBuilder
     private func rootPageDestination(for page: RootSearchPage) -> some View {
         switch page {
-        case .inbox:
-            MailInboxView(threads: MockData.mailThreads)
         case .contacts:
             ContactsView(appState: appState)
                 .navigationTitle("Contacts")
@@ -323,6 +335,94 @@ struct RootView: View {
     }
 }
 
+private struct MatchCriteriaView: View {
+    @Bindable var appState: AppState
+
+    var body: some View {
+        List {
+            Section("Location") {
+                NavigationLink(value: RootDestination.page(.location)) {
+                    valueRow(title: "Location", value: appState.matchingLocation, systemImage: "location.fill")
+                }
+                .accessibilityIdentifier("Location Row")
+
+                NavigationLink(value: RootDestination.page(.radius)) {
+                    valueRow(title: "Radius", value: "Within \(appState.matchingRadiusMiles) mi", systemImage: "scope")
+                }
+                .accessibilityIdentifier("Radius Row")
+            }
+
+            Section("Demographics") {
+                NavigationLink(value: RootDestination.page(.ageRange)) {
+                    valueRow(title: "Age Range", value: "\(appState.preferredAgeMin)-\(appState.preferredAgeMax)", systemImage: "birthday.cake.fill")
+                }
+                .accessibilityIdentifier("Age Range Row")
+
+                NavigationLink(value: RootDestination.page(.matchWith)) {
+                    valueRow(title: "Gender", value: appState.preferredGendersSummary, systemImage: "person.fill")
+                }
+                .accessibilityIdentifier("Criteria Gender Row")
+
+                NavigationLink(value: RootDestination.page(.sexuality)) {
+                    valueRow(title: "Sexuality", value: appState.preferredSexualitiesSummary, systemImage: "heart.circle")
+                }
+                .accessibilityIdentifier("Criteria Sexuality Row")
+
+                NavigationLink(value: RootDestination.page(.matchPolicy)) {
+                    valueRow(title: "Match Policy", value: appState.matchPolicy.label, systemImage: "checkmark.shield.fill")
+                }
+                .accessibilityIdentifier("Match Policy Row")
+            }
+
+            Section("Substance Use") {
+                substanceUseRows(
+                    selection: appState.acceptedSubstanceUse,
+                    selectedValue: "Open",
+                    unselectedValue: "Not open",
+                    accessibilityPrefix: "Criteria"
+                )
+            }
+        }
+        .navigationTitle("Match Criteria")
+        .navigationBarTitleDisplayMode(.inline)
+        .listStyle(.insetGrouped)
+    }
+
+    private func valueRow(title: String, value: String, systemImage: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .foregroundStyle(.secondary)
+                .frame(width: 22)
+
+            Text(title)
+
+            Spacer()
+
+            Text(value)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    private func substanceUseRows(
+        selection: Set<SubstanceUseCategory>,
+        selectedValue: String,
+        unselectedValue: String,
+        accessibilityPrefix: String
+    ) -> some View {
+        ForEach(Array(SubstanceUseCategory.allCases), id: \.self) { substance in
+            NavigationLink(value: RootDestination.page(.substanceUse)) {
+                valueRow(
+                    title: substance.label,
+                    value: selection.contains(substance) ? selectedValue : unselectedValue,
+                    systemImage: substance.systemImage
+                )
+            }
+            .accessibilityIdentifier("\(accessibilityPrefix) \(substance.label) Substance Use Row")
+        }
+    }
+}
+
 private struct RootSearchView: View {
     @Bindable var appState: AppState
     @Binding var isSearchPresented: Bool
@@ -339,8 +439,6 @@ private struct RootSearchView: View {
         List {
             searchResults
         }
-        .navigationTitle("Search")
-        .navigationBarTitleDisplayMode(.inline)
         .listStyle(.insetGrouped)
         .searchable(text: $searchText, isPresented: $isSearchPresented, prompt: "Quick Search")
         .onAppear {
@@ -452,25 +550,108 @@ private struct RootSearchView: View {
     }
 }
 
+private struct WeeklyBatchAvailabilityView: View {
+    @Bindable var appState: AppState
+    let isEnrolledInBatch: Bool
+    let onContinue: () -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            VStack(alignment: .leading, spacing: 16) {
+                WeeklyAvailabilityEditor(
+                    appState: appState,
+                    isLocked: isEnrolledInBatch,
+                    gridHeight: gridHeight(for: proxy.size.height)
+                )
+
+                if isEnrolledInBatch {
+                    Label("You're enrolled for this week.", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.green)
+                        .accessibilityIdentifier("Weekly Batch Enrolled Status")
+                } else {
+                    Button {
+                        onContinue()
+                    } label: {
+                        Text("Continue")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!appState.hasCompleteWeeklyAvailability)
+                    .accessibilityIdentifier("Continue Enrollment")
+                }
+            }
+            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .navigationTitle(isEnrolledInBatch ? "Enrolled" : "Availability")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func gridHeight(for containerHeight: CGFloat) -> CGFloat {
+        let reservedHeight: CGFloat = isEnrolledInBatch ? 190 : 220
+        return min(max(containerHeight - reservedHeight, 360), 560)
+    }
+}
+
+private struct WeeklyBatchEnrollView: View {
+    @Bindable var appState: AppState
+    let isEnrolledInBatch: Bool
+    let resetTrigger: Int
+    let onEnroll: () -> Void
+
+    var body: some View {
+        List {
+            Section("Availability") {
+                HStack {
+                    Label("Selected", systemImage: "calendar")
+                    Spacer()
+                    Text(appState.weeklyAvailabilitySummary)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section {
+                SlideToEnrollControl(
+                    isEnrolledInBatch: isEnrolledInBatch,
+                    isEnabled: appState.hasCompleteWeeklyAvailability,
+                    resetTrigger: resetTrigger,
+                    disabledText: "Add availability"
+                ) {
+                    onEnroll()
+                }
+            } footer: {
+                Text("Enrollment is final.")
+            }
+        }
+        .navigationTitle("Enroll")
+        .navigationBarTitleDisplayMode(.inline)
+        .listStyle(.insetGrouped)
+        .accessibilityIdentifier("Weekly Batch Enroll Screen")
+    }
+}
+
 private struct WeeklyAvailabilityEditor: View {
     @Bindable var appState: AppState
     let isLocked: Bool
+    let gridHeight: CGFloat
+    @State private var activeWindowID: AvailabilityWindow.ID?
 
     private var calendar: Calendar {
         WeeklyAvailabilityCalendar.configuredCalendar()
     }
 
-    private var selectedDateComponents: Binding<Set<DateComponents>> {
-        Binding(
-            get: {
-                Set(appState.weeklyAvailability.map {
-                    calendar.dateComponents([.calendar, .era, .year, .month, .day], from: $0.date)
-                })
-            },
-            set: {
-                appState.setWeeklyAvailabilityDates($0, calendar: calendar)
-            }
-        )
+    private var nextWeekTitle: String {
+        let dates = WeeklyAvailabilityCalendar.nextWeekDates(calendar: calendar)
+        guard let first = dates.first, let last = dates.last else {
+            return "Next Week"
+        }
+
+        let month = first.formatted(.dateTime.month(.wide))
+        let startDay = first.formatted(.dateTime.day())
+        let endDay = last.formatted(.dateTime.day())
+        return "\(month) \(startDay)-\(endDay)"
     }
 
     var body: some View {
@@ -486,134 +667,581 @@ private struct WeeklyAvailabilityEditor: View {
                     .foregroundStyle(.secondary)
             }
 
-            if let weekRange = WeeklyAvailabilityCalendar.currentWeekDateRange(calendar: calendar) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Available Days")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            Text(nextWeekTitle)
+                .font(.subheadline.weight(.semibold))
 
-                    MultiDatePicker(
-                        "Available Days",
-                        selection: selectedDateComponents,
-                        in: weekRange
-                    )
-                    .disabled(isLocked)
-                }
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier("Weekly Availability Calendar")
+            Text("Drag on the grid to add next week's availability.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            WeeklyAvailabilityGrid(
+                appState: appState,
+                isLocked: isLocked,
+                visibleGridHeight: gridHeight,
+                activeWindowID: $activeWindowID
+            )
+        }
+        .accessibilityIdentifier("Weekly Availability Editor")
+        .onChange(of: isLocked) { _, newValue in
+            if newValue {
+                activeWindowID = nil
             }
+        }
+    }
+}
 
-            if appState.weeklyAvailability.isEmpty {
-                Text("Select the days you can meet this week.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(appState.weeklyAvailability) { day in
-                        if let dayBinding = availabilityDayBinding(for: day.id) {
-                            availabilityDayView(day: dayBinding)
+private struct WeeklyAvailabilityGrid: View {
+    @Bindable var appState: AppState
+    let isLocked: Bool
+    let visibleGridHeight: CGFloat
+    @Binding var activeWindowID: AvailabilityWindow.ID?
+
+    @State private var creatingWindowID: AvailabilityWindow.ID?
+    @State private var movingOriginalWindow: AvailabilityMinuteWindow?
+    @State private var resizingStartOriginalWindow: AvailabilityMinuteWindow?
+    @State private var resizingEndOriginalWindow: AvailabilityMinuteWindow?
+    @State private var scrollOffsetY: CGFloat = 0
+    @State private var autoScrollAction: AutoScrollAction?
+    @State private var autoScrollDirection: Int = 0
+    @State private var autoScrollTargetY: CGFloat = 0
+    @State private var scrollToMinute: Int?
+
+    private let timeLabelWidth: CGFloat = 50
+    private let hourHeight: CGFloat = 56
+    private let headerHeight: CGFloat = 44
+    private let slotHorizontalInset: CGFloat = 5
+    private let autoScrollThreshold: CGFloat = 44
+    private let autoScrollStep: CGFloat = 18
+    private let activeColor = Color(red: 0.62, green: 0.10, blue: 0.32)
+    private let autoScrollTimer = Timer.publish(every: 0.08, on: .main, in: .common).autoconnect()
+
+    private enum AutoScrollAction: Equatable {
+        case create(Date, UUID, CGFloat)
+        case move(Date, AvailabilityMinuteWindow)
+        case resizeStart(Date, AvailabilityMinuteWindow)
+        case resizeEnd(Date, AvailabilityMinuteWindow)
+    }
+
+    private var calendar: Calendar {
+        WeeklyAvailabilityCalendar.configuredCalendar()
+    }
+
+    private var weekDates: [Date] {
+        WeeklyAvailabilityCalendar.nextWeekDates(calendar: calendar)
+    }
+
+    private var contentHeight: CGFloat {
+        CGFloat(WeeklyAvailabilityGridRules.endMinute - WeeklyAvailabilityGridRules.startMinute) / 60 * hourHeight
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let dayWidth = max((geometry.size.width - timeLabelWidth) / 7, 34)
+
+            VStack(spacing: 0) {
+                dayHeader(dayWidth: dayWidth)
+
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical) {
+                        ZStack(alignment: .topLeading) {
+                            scrollOffsetReader()
+                            scrollAnchors()
+                            gridLines(totalWidth: geometry.size.width, dayWidth: dayWidth)
+                            creationColumns(dayWidth: dayWidth)
+                            availabilityWindows(dayWidth: dayWidth)
+                        }
+                        .frame(width: geometry.size.width, height: contentHeight, alignment: .topLeading)
+                    }
+                    .coordinateSpace(name: "AvailabilityGridScrollView")
+                    .frame(height: visibleGridHeight)
+                    .clipped()
+                    .onPreferenceChange(AvailabilityScrollOffsetKey.self) { value in
+                        scrollOffsetY = max(0, -value)
+                    }
+                    .onChange(of: scrollToMinute) { _, minute in
+                        guard let minute else { return }
+                        withAnimation(.linear(duration: 0.08)) {
+                            proxy.scrollTo(scrollAnchorID(for: minute), anchor: .top)
                         }
                     }
                 }
             }
         }
-        .accessibilityIdentifier("Weekly Availability Editor")
+        .frame(height: headerHeight + visibleGridHeight)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Weekly Availability Grid")
+        .accessibilityIdentifier("Weekly Availability Grid")
+        .onReceive(autoScrollTimer) { _ in
+            performAutoScrollTick()
+        }
     }
 
-    @ViewBuilder
-    private func availabilityDayView(day: Binding<WeeklyAvailabilityDay>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(day.wrappedValue.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
-                    .font(.subheadline.weight(.semibold))
+    private func dayHeader(dayWidth: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            Color.clear
+                .frame(width: timeLabelWidth)
 
-                Spacer()
+            ForEach(weekDates, id: \.self) { date in
+                VStack(spacing: 3) {
+                    Text(date.formatted(.dateTime.weekday(.abbreviated)).prefix(1).uppercased())
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
 
-                if !isLocked {
-                    Button {
-                        appState.addAvailabilityWindow(on: day.wrappedValue.date, calendar: calendar)
-                    } label: {
-                        Label("Add Window", systemImage: "plus.circle")
-                    }
-                    .font(.caption)
-                    .buttonStyle(.borderless)
-                    .accessibilityIdentifier("Add Availability Window")
+                    Text(date.formatted(.dateTime.day()))
+                        .font(.title3.weight(.medium))
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: dayWidth, height: headerHeight)
+                .accessibilityIdentifier("Availability Day Header \(weekdayName(for: date))")
+            }
+        }
+    }
+
+    private func gridLines(totalWidth: CGFloat, dayWidth: CGFloat) -> some View {
+        ZStack(alignment: .topLeading) {
+            Path { path in
+                for hour in 0...24 {
+                    let y = minuteY(hour * 60)
+                    path.move(to: CGPoint(x: timeLabelWidth, y: y))
+                    path.addLine(to: CGPoint(x: totalWidth, y: y))
+                }
+
+                for dayIndex in 0...7 {
+                    let x = timeLabelWidth + (CGFloat(dayIndex) * dayWidth)
+                    path.move(to: CGPoint(x: x, y: 0))
+                    path.addLine(to: CGPoint(x: x, y: contentHeight))
                 }
             }
+            .stroke(Color(.separator).opacity(0.55), lineWidth: 1)
 
-            if day.wrappedValue.windows.isEmpty {
-                Text(isLocked ? "No time windows added." : "Add a time window for this day.")
+            ForEach(Array(stride(from: 0, through: 24, by: 1)), id: \.self) { hour in
+                Text(timeLabel(for: hour))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            } else {
-                ForEach(day.windows) { $window in
-                    if isLocked {
-                        readOnlyWindowRow(window)
-                    } else {
-                        editableWindowRow(window: $window, day: day.wrappedValue.date)
+                    .frame(width: timeLabelWidth - 6, alignment: .trailing)
+                    .offset(x: 0, y: minuteY(hour * 60) - 8)
+            }
+        }
+    }
+
+    private func scrollOffsetReader() -> some View {
+        GeometryReader { proxy in
+            Color.clear
+                .preference(
+                    key: AvailabilityScrollOffsetKey.self,
+                    value: proxy.frame(in: .named("AvailabilityGridScrollView")).minY
+                )
+        }
+        .frame(height: 0)
+    }
+
+    private func scrollAnchors() -> some View {
+        ForEach(Array(stride(
+            from: WeeklyAvailabilityGridRules.startMinute,
+            through: WeeklyAvailabilityGridRules.endMinute,
+            by: WeeklyAvailabilityGridRules.snapIntervalMinutes
+        )), id: \.self) { minute in
+            Color.clear
+                .frame(width: 1, height: 1)
+                .id(scrollAnchorID(for: minute))
+                .offset(x: 0, y: minuteY(minute))
+        }
+    }
+
+    private func creationColumns(dayWidth: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            ForEach(weekDates, id: \.self) { date in
+                Rectangle()
+                    .fill(Color(.systemBackground).opacity(0.001))
+                    .contentShape(Rectangle())
+                    .frame(width: dayWidth, height: contentHeight)
+                    .gesture(createGesture(for: date), including: isLocked ? .subviews : .gesture)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Availability Day \(weekdayName(for: date))")
+                    .accessibilityIdentifier("Availability Day \(weekdayName(for: date))")
+            }
+        }
+        .offset(x: timeLabelWidth)
+    }
+
+    private func availabilityWindows(dayWidth: CGFloat) -> some View {
+        ForEach(Array(weekDates.enumerated()), id: \.element) { dayIndex, date in
+            ForEach(appState.availabilityWindows(on: date, calendar: calendar)) { window in
+                let minuteWindow = minuteWindow(for: window)
+                let isActive = !isLocked && activeWindowID == window.id
+                let windowHeight = max(minuteHeight(minuteWindow.endMinute - minuteWindow.startMinute), 28)
+
+                AvailabilityWindowBlock(
+                    window: window,
+                    isActive: isActive,
+                    isLocked: isLocked,
+                    activeColor: activeColor,
+                    onDelete: {
+                        appState.removeAvailabilityWindow(window.id, on: date, calendar: calendar)
+                        activeWindowID = nil
+                    },
+                    moveGesture: moveGesture(for: minuteWindow, on: date),
+                    resizeStartGesture: resizeStartGesture(for: minuteWindow, on: date),
+                    resizeEndGesture: resizeEndGesture(for: minuteWindow, on: date)
+                )
+                .frame(width: max(dayWidth - (slotHorizontalInset * 2), 26), height: windowHeight)
+                .position(
+                    x: timeLabelWidth + (CGFloat(dayIndex) * dayWidth) + (dayWidth / 2),
+                    y: minuteY(minuteWindow.startMinute) + (windowHeight / 2)
+                )
+                .onTapGesture {
+                    guard !isLocked else { return }
+                    activeWindowID = window.id
+                }
+                .zIndex(isActive ? 2 : 1)
+            }
+        }
+    }
+
+    private func createGesture(for date: Date) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.25)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("AvailabilityGridScrollView")))
+            .onChanged { value in
+                guard !isLocked else { return }
+
+                switch value {
+                case .first:
+                    break
+                case .second(true, let dragValue):
+                    let windowID = creatingWindowID ?? UUID()
+                    creatingWindowID = windowID
+                    if let dragValue {
+                        updateCreatingWindow(
+                            id: windowID,
+                            on: date,
+                            anchorY: contentY(forVisibleY: dragValue.startLocation.y),
+                            currentVisibleY: dragValue.location.y
+                        )
+                        updateAutoScroll(
+                            visibleY: dragValue.location.y,
+                            action: .create(date, windowID, contentY(forVisibleY: dragValue.startLocation.y))
+                        )
                     }
+                default:
+                    break
                 }
             }
-        }
-        .padding(.vertical, 6)
-    }
-
-    private func editableWindowRow(window: Binding<AvailabilityWindow>, day: Date) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            DatePicker(
-                "Start",
-                selection: window.startTime,
-                displayedComponents: .hourAndMinute
-            )
-            .accessibilityIdentifier("Availability Start Time")
-
-            DatePicker(
-                "End",
-                selection: window.endTime,
-                displayedComponents: .hourAndMinute
-            )
-            .accessibilityIdentifier("Availability End Time")
-
-            HStack {
-                if !window.wrappedValue.isValid {
-                    Text("End time must be after start time.")
-                        .font(.caption)
-                        .foregroundStyle(.red)
+            .onEnded { value in
+                if case .second(true, nil) = value, !isLocked {
+                    let windowID = creatingWindowID ?? UUID()
+                    updateCreatingWindow(
+                        id: windowID,
+                        on: date,
+                        anchorY: scrollOffsetY + (visibleGridHeight / 2),
+                        currentVisibleY: visibleGridHeight / 2
+                    )
                 }
-
-                Spacer()
-
-                Button(role: .destructive) {
-                    appState.removeAvailabilityWindow(window.wrappedValue.id, on: day, calendar: calendar)
-                } label: {
-                    Label("Remove", systemImage: "minus.circle")
-                }
-                .font(.caption)
-                .buttonStyle(.borderless)
+                creatingWindowID = nil
+                stopAutoScroll()
             }
-        }
-        .padding(.vertical, 4)
     }
 
-    private func readOnlyWindowRow(_ window: AvailabilityWindow) -> some View {
-        HStack {
-            Image(systemName: "clock")
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
+    private func moveGesture(for minuteWindow: AvailabilityMinuteWindow, on date: Date) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named("AvailabilityGridScrollView"))
+            .onChanged { value in
+                guard !isLocked else { return }
+                activeWindowID = minuteWindow.id
+
+                let originalWindow = movingOriginalWindow ?? minuteWindow
+                movingOriginalWindow = originalWindow
+                updateMovedWindow(originalWindow, on: date, translationY: value.translation.height)
+                updateAutoScroll(visibleY: value.location.y, action: .move(date, originalWindow))
+            }
+            .onEnded { _ in
+                movingOriginalWindow = nil
+                stopAutoScroll()
+            }
+    }
+
+    private func resizeStartGesture(for minuteWindow: AvailabilityMinuteWindow, on date: Date) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named("AvailabilityGridScrollView"))
+            .onChanged { value in
+                guard !isLocked else { return }
+                activeWindowID = minuteWindow.id
+
+                let originalWindow = resizingStartOriginalWindow ?? minuteWindow
+                resizingStartOriginalWindow = originalWindow
+                updateResizedStartWindow(originalWindow, on: date, translationY: value.translation.height)
+                updateAutoScroll(visibleY: value.location.y, action: .resizeStart(date, originalWindow))
+            }
+            .onEnded { _ in
+                resizingStartOriginalWindow = nil
+                stopAutoScroll()
+            }
+    }
+
+    private func resizeEndGesture(for minuteWindow: AvailabilityMinuteWindow, on date: Date) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named("AvailabilityGridScrollView"))
+            .onChanged { value in
+                guard !isLocked else { return }
+                activeWindowID = minuteWindow.id
+
+                let originalWindow = resizingEndOriginalWindow ?? minuteWindow
+                resizingEndOriginalWindow = originalWindow
+                updateResizedEndWindow(originalWindow, on: date, translationY: value.translation.height)
+                updateAutoScroll(visibleY: value.location.y, action: .resizeEnd(date, originalWindow))
+            }
+            .onEnded { _ in
+                resizingEndOriginalWindow = nil
+                stopAutoScroll()
+            }
+    }
+
+    private func updateCreatingWindow(id: UUID, on date: Date, anchorY: CGFloat, currentVisibleY: CGFloat) {
+        let existingWindows = appState
+            .availabilityMinuteWindows(on: date, calendar: calendar)
+            .filter { $0.id != id }
+        guard var minuteWindow = WeeklyAvailabilityGridRules.createWindowMinutes(
+            anchorMinute: minute(forContentY: anchorY),
+            currentMinute: minute(forContentY: contentY(forVisibleY: currentVisibleY)),
+            existingWindows: existingWindows
+        ) else {
+            return
+        }
+
+        minuteWindow = AvailabilityMinuteWindow(
+            id: id,
+            startMinute: minuteWindow.startMinute,
+            endMinute: minuteWindow.endMinute
+        )
+        activeWindowID = id
+        appState.upsertAvailabilityWindow(minuteWindow, on: date, calendar: calendar)
+    }
+
+    private func updateMovedWindow(_ originalWindow: AvailabilityMinuteWindow, on date: Date, translationY: CGFloat) {
+        let proposedStart = originalWindow.startMinute + Int((translationY / hourHeight) * 60)
+        let movedWindow = WeeklyAvailabilityGridRules.moveWindowMinutes(
+            proposedStartMinute: proposedStart,
+            originalWindow: originalWindow,
+            existingWindows: appState.availabilityMinuteWindows(on: date, calendar: calendar)
+        )
+
+        appState.upsertAvailabilityWindow(movedWindow, on: date, calendar: calendar)
+    }
+
+    private func updateMovedWindow(_ originalWindow: AvailabilityMinuteWindow, on date: Date, targetContentY: CGFloat) {
+        let duration = originalWindow.endMinute - originalWindow.startMinute
+        let proposedStart = minute(forContentY: targetContentY) - (duration / 2)
+        let movedWindow = WeeklyAvailabilityGridRules.moveWindowMinutes(
+            proposedStartMinute: proposedStart,
+            originalWindow: originalWindow,
+            existingWindows: appState.availabilityMinuteWindows(on: date, calendar: calendar)
+        )
+
+        appState.upsertAvailabilityWindow(movedWindow, on: date, calendar: calendar)
+    }
+
+    private func updateResizedStartWindow(_ originalWindow: AvailabilityMinuteWindow, on date: Date, translationY: CGFloat) {
+        let resizedWindow = WeeklyAvailabilityGridRules.resizeStartMinutes(
+            currentMinute: originalWindow.startMinute + Int((translationY / hourHeight) * 60),
+            originalWindow: originalWindow,
+            existingWindows: appState.availabilityMinuteWindows(on: date, calendar: calendar)
+        )
+
+        appState.upsertAvailabilityWindow(resizedWindow, on: date, calendar: calendar)
+    }
+
+    private func updateResizedStartWindow(_ originalWindow: AvailabilityMinuteWindow, on date: Date, targetContentY: CGFloat) {
+        let resizedWindow = WeeklyAvailabilityGridRules.resizeStartMinutes(
+            currentMinute: minute(forContentY: targetContentY),
+            originalWindow: originalWindow,
+            existingWindows: appState.availabilityMinuteWindows(on: date, calendar: calendar)
+        )
+
+        appState.upsertAvailabilityWindow(resizedWindow, on: date, calendar: calendar)
+    }
+
+    private func updateResizedEndWindow(_ originalWindow: AvailabilityMinuteWindow, on date: Date, targetContentY: CGFloat) {
+        let resizedWindow = WeeklyAvailabilityGridRules.resizeEndMinutes(
+            currentMinute: minute(forContentY: targetContentY),
+            originalWindow: originalWindow,
+            existingWindows: appState.availabilityMinuteWindows(on: date, calendar: calendar)
+        )
+
+        appState.upsertAvailabilityWindow(resizedWindow, on: date, calendar: calendar)
+    }
+
+    private func updateResizedEndWindow(_ originalWindow: AvailabilityMinuteWindow, on date: Date, translationY: CGFloat) {
+        let resizedWindow = WeeklyAvailabilityGridRules.resizeEndMinutes(
+            currentMinute: originalWindow.endMinute + Int((translationY / hourHeight) * 60),
+            originalWindow: originalWindow,
+            existingWindows: appState.availabilityMinuteWindows(on: date, calendar: calendar)
+        )
+
+        appState.upsertAvailabilityWindow(resizedWindow, on: date, calendar: calendar)
+    }
+
+    private func updateAutoScroll(visibleY: CGFloat, action: AutoScrollAction) {
+        autoScrollAction = action
+        autoScrollTargetY = min(max(visibleY, 0), visibleGridHeight)
+
+        if visibleY < autoScrollThreshold {
+            autoScrollDirection = -1
+        } else if visibleY > visibleGridHeight - autoScrollThreshold {
+            autoScrollDirection = 1
+        } else {
+            autoScrollDirection = 0
+        }
+    }
+
+    private func performAutoScrollTick() {
+        guard !isLocked,
+              autoScrollDirection != 0,
+              let action = autoScrollAction else {
+            return
+        }
+
+        let maxOffset = max(contentHeight - visibleGridHeight, 0)
+        let nextOffset = min(max(scrollOffsetY + (CGFloat(autoScrollDirection) * autoScrollStep), 0), maxOffset)
+        guard nextOffset != scrollOffsetY else {
+            return
+        }
+
+        let targetMinute = minute(forContentY: nextOffset)
+        scrollToMinute = targetMinute
+        let targetContentY = nextOffset + autoScrollTargetY
+
+        switch action {
+        case .create(let date, let id, let anchorY):
+            updateCreatingWindow(id: id, on: date, anchorY: anchorY, currentVisibleY: targetContentY - scrollOffsetY)
+        case .move(let date, let window):
+            updateMovedWindow(window, on: date, targetContentY: targetContentY)
+        case .resizeStart(let date, let window):
+            updateResizedStartWindow(window, on: date, targetContentY: targetContentY)
+        case .resizeEnd(let date, let window):
+            updateResizedEndWindow(window, on: date, targetContentY: targetContentY)
+        }
+    }
+
+    private func stopAutoScroll() {
+        autoScrollDirection = 0
+        autoScrollAction = nil
+    }
+
+    private func minuteWindow(for window: AvailabilityWindow) -> AvailabilityMinuteWindow {
+        AvailabilityMinuteWindow(
+            id: window.id,
+            startMinute: WeeklyAvailabilityCalendar.minuteOfDay(for: window.startTime, calendar: calendar),
+            endMinute: WeeklyAvailabilityCalendar.minuteOfDay(for: window.endTime, calendar: calendar)
+        )
+    }
+
+    private func minute(forContentY y: CGFloat) -> Int {
+        let rawMinute = WeeklyAvailabilityGridRules.startMinute + Int((y / hourHeight) * 60)
+        return WeeklyAvailabilityGridRules.snap(rawMinute)
+    }
+
+    private func contentY(forVisibleY y: CGFloat) -> CGFloat {
+        min(max(scrollOffsetY + y, 0), contentHeight)
+    }
+
+    private func minuteY(_ minute: Int) -> CGFloat {
+        CGFloat(minute - WeeklyAvailabilityGridRules.startMinute) / 60 * hourHeight
+    }
+
+    private func minuteHeight(_ minutes: Int) -> CGFloat {
+        CGFloat(minutes) / 60 * hourHeight
+    }
+
+    private func timeLabel(for hour: Int) -> String {
+        switch hour {
+        case 0, 24:
+            return "12 AM"
+        case 1..<12:
+            return "\(hour) AM"
+        case 12:
+            return "12 PM"
+        default:
+            return "\(hour - 12) PM"
+        }
+    }
+
+    private func weekdayName(for date: Date) -> String {
+        date.formatted(.dateTime.weekday(.wide))
+    }
+
+    private func scrollAnchorID(for minute: Int) -> String {
+        "availability-minute-\(minute)"
+    }
+}
+
+private struct AvailabilityScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+private struct AvailabilityWindowBlock<MoveGesture: Gesture, ResizeStartGesture: Gesture, ResizeEndGesture: Gesture>: View {
+    let window: AvailabilityWindow
+    let isActive: Bool
+    let isLocked: Bool
+    let activeColor: Color
+    let onDelete: () -> Void
+    let moveGesture: MoveGesture
+    let resizeStartGesture: ResizeStartGesture
+    let resizeEndGesture: ResizeEndGesture
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            RoundedRectangle(cornerRadius: 5)
+                .fill(isActive ? Color.clear : activeColor.opacity(isLocked ? 0.16 : 0.22))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 5)
+                        .stroke(activeColor, lineWidth: isActive ? 3 : 1.5)
+                )
+                .shadow(color: isActive ? .black.opacity(0.16) : .clear, radius: 3, y: 1)
+                .contentShape(Rectangle())
+                .gesture(moveGesture)
 
             Text("\(window.startTime.formatted(date: .omitted, time: .shortened))-\(window.endTime.formatted(date: .omitted, time: .shortened))")
-                .font(.subheadline)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(isActive ? activeColor : .primary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 4)
 
-            Spacer()
+            if isActive {
+                Circle()
+                    .fill(activeColor)
+                    .frame(width: 18, height: 18)
+                    .background(Circle().fill(activeColor.opacity(0.16)).frame(width: 32, height: 32))
+                    .offset(x: -8, y: -8)
+                    .highPriorityGesture(resizeStartGesture)
+                    .accessibilityIdentifier("Availability Start Handle")
+
+                GeometryReader { proxy in
+                    Circle()
+                        .fill(activeColor)
+                        .frame(width: 18, height: 18)
+                        .background(Circle().fill(activeColor.opacity(0.16)).frame(width: 32, height: 32))
+                        .position(x: proxy.size.width + 2, y: proxy.size.height + 2)
+                        .highPriorityGesture(resizeEndGesture)
+                        .accessibilityIdentifier("Availability End Handle")
+
+                    Button(role: .destructive, action: onDelete) {
+                        Image(systemName: "trash")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(activeColor)
+                            .padding(5)
+                            .background(.thinMaterial, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .position(x: proxy.size.width - 12, y: 12)
+                    .accessibilityIdentifier("Delete Availability Window")
+                }
+            }
         }
-    }
-
-    private func availabilityDayBinding(for id: WeeklyAvailabilityDay.ID) -> Binding<WeeklyAvailabilityDay>? {
-        guard let index = appState.weeklyAvailability.firstIndex(where: { $0.id == id }) else {
-            return nil
-        }
-
-        return $appState.weeklyAvailability[index]
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(isActive ? "Active Availability Window" : "Filled Availability Window")
+        .accessibilityIdentifier(isActive ? "Active Availability Window" : "Filled Availability Window")
     }
 }
 

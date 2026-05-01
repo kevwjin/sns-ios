@@ -39,6 +39,9 @@ struct SlideToEnrollControl: View {
             }
             .frame(height: trackHeight)
             .contentShape(Rectangle())
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(sliderText)
+            .accessibilityIdentifier("Weekly Batch Enrollment Slider")
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
@@ -63,7 +66,6 @@ struct SlideToEnrollControl: View {
         }
         .frame(height: 56)
         .opacity(isEnabled || isEnrolledInBatch ? 1 : 0.65)
-        .accessibilityIdentifier("Weekly Batch Enrollment Slider")
         .onChange(of: resetTrigger) { _, _ in
             guard !isEnrolledInBatch else { return }
             withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {

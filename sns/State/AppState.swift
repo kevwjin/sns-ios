@@ -93,12 +93,122 @@ struct WeeklyAvailabilityDay: Identifiable, Hashable {
     var id: Date { date }
 
     init(date: Date, windows: [AvailabilityWindow] = []) {
-        self.date = Calendar.current.startOfDay(for: date)
+        self.date = date
         self.windows = windows
     }
 
     var hasValidWindow: Bool {
         windows.contains { $0.isValid }
+    }
+}
+
+struct AvailabilityMinuteWindow: Identifiable, Hashable {
+    let id: UUID
+    var startMinute: Int
+    var endMinute: Int
+}
+
+enum WeeklyAvailabilityGridRules {
+    static let startMinute = 0
+    static let endMinute = 24 * 60
+    static let snapIntervalMinutes = 15
+    static let minimumDurationMinutes = 15
+
+    static func snap(_ minute: Int) -> Int {
+        let snapped = Int((Double(minute) / Double(snapIntervalMinutes)).rounded()) * snapIntervalMinutes
+        return min(max(snapped, startMinute), endMinute)
+    }
+
+    static func createWindowMinutes(
+        anchorMinute: Int,
+        currentMinute: Int,
+        existingWindows: [AvailabilityMinuteWindow]
+    ) -> AvailabilityMinuteWindow? {
+        let anchor = snap(anchorMinute)
+        let current = snap(currentMinute)
+        let sortedWindows = existingWindows.sorted { $0.startMinute < $1.startMinute }
+
+        if current >= anchor {
+            let nextStart = sortedWindows
+                .filter { $0.startMinute >= anchor }
+                .map(\.startMinute)
+                .min() ?? endMinute
+            let end = min(max(current, anchor + minimumDurationMinutes), nextStart)
+            guard end - anchor >= minimumDurationMinutes else { return nil }
+            return AvailabilityMinuteWindow(id: UUID(), startMinute: anchor, endMinute: end)
+        }
+
+        let previousEnd = sortedWindows
+            .filter { $0.endMinute <= anchor }
+            .map(\.endMinute)
+            .max() ?? startMinute
+        let start = max(min(current, anchor - minimumDurationMinutes), previousEnd)
+        guard anchor - start >= minimumDurationMinutes else { return nil }
+        return AvailabilityMinuteWindow(id: UUID(), startMinute: start, endMinute: anchor)
+    }
+
+    static func resizeStartMinutes(
+        currentMinute: Int,
+        originalWindow: AvailabilityMinuteWindow,
+        existingWindows: [AvailabilityMinuteWindow]
+    ) -> AvailabilityMinuteWindow {
+        let lowerBound = existingWindows
+            .filter { $0.id != originalWindow.id && $0.endMinute <= originalWindow.endMinute }
+            .map(\.endMinute)
+            .max() ?? startMinute
+        let upperBound = originalWindow.endMinute - minimumDurationMinutes
+        let start = min(max(snap(currentMinute), lowerBound), upperBound)
+
+        return AvailabilityMinuteWindow(
+            id: originalWindow.id,
+            startMinute: start,
+            endMinute: originalWindow.endMinute
+        )
+    }
+
+    static func resizeEndMinutes(
+        currentMinute: Int,
+        originalWindow: AvailabilityMinuteWindow,
+        existingWindows: [AvailabilityMinuteWindow]
+    ) -> AvailabilityMinuteWindow {
+        let lowerBound = originalWindow.startMinute + minimumDurationMinutes
+        let upperBound = existingWindows
+            .filter { $0.id != originalWindow.id && $0.startMinute >= originalWindow.startMinute }
+            .map(\.startMinute)
+            .min() ?? endMinute
+        let end = max(min(snap(currentMinute), upperBound), lowerBound)
+
+        return AvailabilityMinuteWindow(
+            id: originalWindow.id,
+            startMinute: originalWindow.startMinute,
+            endMinute: end
+        )
+    }
+
+    static func moveWindowMinutes(
+        proposedStartMinute: Int,
+        originalWindow: AvailabilityMinuteWindow,
+        existingWindows: [AvailabilityMinuteWindow]
+    ) -> AvailabilityMinuteWindow {
+        let duration = originalWindow.endMinute - originalWindow.startMinute
+        let previousEnd = existingWindows
+            .filter { $0.id != originalWindow.id && $0.endMinute <= originalWindow.startMinute }
+            .map(\.endMinute)
+            .max() ?? startMinute
+        let nextStart = existingWindows
+            .filter { $0.id != originalWindow.id && $0.startMinute >= originalWindow.endMinute }
+            .map(\.startMinute)
+            .min() ?? endMinute
+
+        let lowerBound = previousEnd
+        let upperBound = nextStart - duration
+        let start = min(max(snap(proposedStartMinute), lowerBound), upperBound)
+
+        return AvailabilityMinuteWindow(
+            id: originalWindow.id,
+            startMinute: start,
+            endMinute: start + duration
+        )
     }
 }
 
@@ -127,6 +237,39 @@ enum WeeklyAvailabilityCalendar {
         let configuredCalendar = configuredCalendar(from: calendar)
         let end = configuredCalendar.date(byAdding: .day, value: 7, to: start) ?? start
         return start..<end
+    }
+
+    static func nextWeekDates(containing date: Date = Date(), calendar: Calendar = .current) -> [Date] {
+        let configuredCalendar = configuredCalendar(from: calendar)
+        guard let weekStart = currentWeekDates(containing: date, calendar: configuredCalendar).first,
+              let nextWeekStart = configuredCalendar.date(byAdding: .day, value: 7, to: weekStart) else {
+            return []
+        }
+
+        return (0..<7).compactMap {
+            configuredCalendar.date(byAdding: .day, value: $0, to: nextWeekStart)
+        }
+    }
+
+    static func nextWeekDateRange(containing date: Date = Date(), calendar: Calendar = .current) -> Range<Date>? {
+        let dates = nextWeekDates(containing: date, calendar: calendar)
+        guard let start = dates.first else { return nil }
+
+        let configuredCalendar = configuredCalendar(from: calendar)
+        let end = configuredCalendar.date(byAdding: .day, value: 7, to: start) ?? start
+        return start..<end
+    }
+
+    static func minuteOfDay(for date: Date, calendar: Calendar = .current) -> Int {
+        let configuredCalendar = configuredCalendar(from: calendar)
+        let components = configuredCalendar.dateComponents([.hour, .minute], from: date)
+        return ((components.hour ?? 0) * 60) + (components.minute ?? 0)
+    }
+
+    static func date(on day: Date, minuteOfDay: Int, calendar: Calendar = .current) -> Date {
+        let configuredCalendar = configuredCalendar(from: calendar)
+        let startOfDay = configuredCalendar.startOfDay(for: day)
+        return configuredCalendar.date(byAdding: .minute, value: minuteOfDay, to: startOfDay) ?? startOfDay
     }
 }
 
@@ -272,6 +415,56 @@ extension AppState {
         }
 
         weeklyAvailability[index].windows.removeAll { $0.id == windowID }
+        if weeklyAvailability[index].windows.isEmpty {
+            weeklyAvailability.remove(at: index)
+        }
+    }
+
+    func availabilityWindows(on date: Date, calendar: Calendar = .current) -> [AvailabilityWindow] {
+        let configuredCalendar = WeeklyAvailabilityCalendar.configuredCalendar(from: calendar)
+        return weeklyAvailability
+            .first { configuredCalendar.isDate($0.date, inSameDayAs: date) }?
+            .windows
+            .sorted { $0.startTime < $1.startTime } ?? []
+    }
+
+    func availabilityMinuteWindows(on date: Date, calendar: Calendar = .current) -> [AvailabilityMinuteWindow] {
+        availabilityWindows(on: date, calendar: calendar).map {
+            AvailabilityMinuteWindow(
+                id: $0.id,
+                startMinute: WeeklyAvailabilityCalendar.minuteOfDay(for: $0.startTime, calendar: calendar),
+                endMinute: WeeklyAvailabilityCalendar.minuteOfDay(for: $0.endTime, calendar: calendar)
+            )
+        }
+    }
+
+    @discardableResult
+    func upsertAvailabilityWindow(
+        _ minuteWindow: AvailabilityMinuteWindow,
+        on date: Date,
+        calendar: Calendar = .current
+    ) -> AvailabilityWindow {
+        let configuredCalendar = WeeklyAvailabilityCalendar.configuredCalendar(from: calendar)
+        let day = configuredCalendar.startOfDay(for: date)
+        let window = AvailabilityWindow(
+            id: minuteWindow.id,
+            startTime: WeeklyAvailabilityCalendar.date(on: day, minuteOfDay: minuteWindow.startMinute, calendar: configuredCalendar),
+            endTime: WeeklyAvailabilityCalendar.date(on: day, minuteOfDay: minuteWindow.endMinute, calendar: configuredCalendar)
+        )
+
+        if let dayIndex = weeklyAvailability.firstIndex(where: { configuredCalendar.isDate($0.date, inSameDayAs: day) }) {
+            if let windowIndex = weeklyAvailability[dayIndex].windows.firstIndex(where: { $0.id == window.id }) {
+                weeklyAvailability[dayIndex].windows[windowIndex] = window
+            } else {
+                weeklyAvailability[dayIndex].windows.append(window)
+            }
+            weeklyAvailability[dayIndex].windows.sort { $0.startTime < $1.startTime }
+        } else {
+            weeklyAvailability.append(WeeklyAvailabilityDay(date: day, windows: [window]))
+            weeklyAvailability.sort { $0.date < $1.date }
+        }
+
+        return window
     }
 
     var profileSummary: String {

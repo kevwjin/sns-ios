@@ -27,6 +27,33 @@ struct snsTests {
         #expect(contact.name == "Unnamed Contact")
     }
 
+    @Test func contactInitialsUseNameOrDefaultFallback() {
+        #expect(AppContact(name: "Ava Thompson").initials == "AT")
+        #expect(AppContact(name: "Ava").initials == "A")
+        #expect(AppContact(name: "   ").initials == "FL")
+    }
+
+    @Test func preferredContactSummaryUsesSelectedMethodValue() {
+        var contact = AppContact(name: "Ava Thompson")
+
+        #expect(contact.preferredContactSummary == "Email")
+
+        contact.email = "ava@example.com"
+        #expect(contact.preferredContactSummary == "ava@example.com")
+
+        contact.preferredContactMethod = .phone
+        contact.phone = "555-0100"
+        #expect(contact.preferredContactSummary == "555-0100")
+
+        contact.preferredContactMethod = .sns
+        contact.preferredContactDetail = "@ava"
+        #expect(contact.preferredContactSummary == "@ava")
+
+        contact.preferredContactMethod = .other
+        contact.preferredContactDetail = ""
+        #expect(contact.preferredContactSummary == "Other")
+    }
+
     @Test func appStateCountsEligibleContacts() {
         var enabledContact = AppContact(name: "Ava Thompson")
         var disabledContact = AppContact(name: "Noah Kim")
@@ -201,6 +228,123 @@ struct snsTests {
         #expect(weekdays == [2, 3, 4, 5, 6, 7, 1])
     }
 
+    @Test func weeklyAvailabilityCalendarReturnsNextMondayThroughSunday() {
+        let calendar = testCalendar()
+        let thursday = testDate(year: 2026, month: 4, day: 30, hour: 12, calendar: calendar)
+        let weekDates = WeeklyAvailabilityCalendar.nextWeekDates(containing: thursday, calendar: calendar)
+        let days = weekDates.map { calendar.component(.day, from: $0) }
+        let weekdays = weekDates.map { WeeklyAvailabilityCalendar.configuredCalendar(from: calendar).component(.weekday, from: $0) }
+
+        #expect(weekDates.count == 7)
+        #expect(days == [4, 5, 6, 7, 8, 9, 10])
+        #expect(weekdays == [2, 3, 4, 5, 6, 7, 1])
+    }
+
+    @Test func weeklyAvailabilityGridSnapsToFifteenMinutes() {
+        #expect(WeeklyAvailabilityGridRules.snap(7 * 60 + 7) == 7 * 60)
+        #expect(WeeklyAvailabilityGridRules.snap(7 * 60 + 8) == 7 * 60 + 15)
+        #expect(WeeklyAvailabilityGridRules.snap(-15) == WeeklyAvailabilityGridRules.startMinute)
+        #expect(WeeklyAvailabilityGridRules.snap(25 * 60) == WeeklyAvailabilityGridRules.endMinute)
+    }
+
+    @Test func weeklyAvailabilityGridCreatesWindowWithMinimumDuration() {
+        let window = WeeklyAvailabilityGridRules.createWindowMinutes(
+            anchorMinute: 7 * 60,
+            currentMinute: 7 * 60 + 5,
+            existingWindows: []
+        )
+
+        #expect(window?.startMinute == 7 * 60)
+        #expect(window?.endMinute == 7 * 60 + 15)
+    }
+
+    @Test func weeklyAvailabilityGridClampsToFullDay() {
+        let startWindow = WeeklyAvailabilityGridRules.createWindowMinutes(
+            anchorMinute: -30,
+            currentMinute: 5,
+            existingWindows: []
+        )
+        let endWindow = WeeklyAvailabilityGridRules.createWindowMinutes(
+            anchorMinute: 24 * 60 - 10,
+            currentMinute: 25 * 60,
+            existingWindows: []
+        )
+
+        #expect(startWindow?.startMinute == 0)
+        #expect(startWindow?.endMinute == 15)
+        #expect(endWindow?.startMinute == 23 * 60 + 45)
+        #expect(endWindow?.endMinute == 24 * 60)
+    }
+
+    @Test func weeklyAvailabilityGridCreateClampsBeforeOverlap() {
+        let existing = AvailabilityMinuteWindow(
+            id: UUID(),
+            startMinute: 8 * 60,
+            endMinute: 9 * 60
+        )
+        let window = WeeklyAvailabilityGridRules.createWindowMinutes(
+            anchorMinute: 7 * 60,
+            currentMinute: 8 * 60 + 30,
+            existingWindows: [existing]
+        )
+
+        #expect(window?.startMinute == 7 * 60)
+        #expect(window?.endMinute == 8 * 60)
+    }
+
+    @Test func weeklyAvailabilityGridResizeClampsAroundNeighbors() {
+        let activeID = UUID()
+        let previous = AvailabilityMinuteWindow(id: UUID(), startMinute: 6 * 60, endMinute: 7 * 60)
+        let active = AvailabilityMinuteWindow(id: activeID, startMinute: 8 * 60, endMinute: 9 * 60)
+        let next = AvailabilityMinuteWindow(id: UUID(), startMinute: 10 * 60, endMinute: 11 * 60)
+
+        let resizedStart = WeeklyAvailabilityGridRules.resizeStartMinutes(
+            currentMinute: 6 * 60 + 30,
+            originalWindow: active,
+            existingWindows: [previous, active, next]
+        )
+        let resizedEnd = WeeklyAvailabilityGridRules.resizeEndMinutes(
+            currentMinute: 10 * 60 + 30,
+            originalWindow: active,
+            existingWindows: [previous, active, next]
+        )
+
+        #expect(resizedStart.startMinute == 7 * 60)
+        #expect(resizedStart.endMinute == 9 * 60)
+        #expect(resizedEnd.startMinute == 8 * 60)
+        #expect(resizedEnd.endMinute == 10 * 60)
+    }
+
+    @Test func weeklyAvailabilityGridMovePreservesDurationAndStopsAtOverlap() {
+        let activeID = UUID()
+        let active = AvailabilityMinuteWindow(id: activeID, startMinute: 8 * 60, endMinute: 9 * 60)
+        let next = AvailabilityMinuteWindow(id: UUID(), startMinute: 9 * 60 + 30, endMinute: 10 * 60)
+
+        let moved = WeeklyAvailabilityGridRules.moveWindowMinutes(
+            proposedStartMinute: 9 * 60,
+            originalWindow: active,
+            existingWindows: [active, next]
+        )
+
+        #expect(moved.startMinute == 8 * 60 + 30)
+        #expect(moved.endMinute == 9 * 60 + 30)
+    }
+
+    @Test func weeklyAvailabilityUpsertStoresSortedNonOverlappingWindows() {
+        let state = AppState.mock()
+        let calendar = testCalendar()
+        let day = testDate(year: 2026, month: 5, day: 4, hour: 12, calendar: calendar)
+        let laterWindow = AvailabilityMinuteWindow(id: UUID(), startMinute: 12 * 60, endMinute: 13 * 60)
+        let earlierWindow = AvailabilityMinuteWindow(id: UUID(), startMinute: 8 * 60, endMinute: 9 * 60)
+
+        state.upsertAvailabilityWindow(laterWindow, on: day, calendar: calendar)
+        state.upsertAvailabilityWindow(earlierWindow, on: day, calendar: calendar)
+
+        let windows = state.availabilityMinuteWindows(on: day, calendar: calendar)
+        #expect(windows.map(\.startMinute) == [8 * 60, 12 * 60])
+        #expect(state.hasCompleteWeeklyAvailability)
+    }
+
     @Test func locationSuggestionFormatsDisplayName() {
         let neighborhood = LocationSuggestion(title: "Hayes Valley", subtitle: "San Francisco, CA")
         let city = LocationSuggestion(title: "San Francisco")
@@ -259,10 +403,10 @@ struct snsTests {
     @Test func rootSearchFindsPagesByTitleAndKeyword() {
         let state = AppState.mock()
         let radiusResults = RootSearchIndex.results(for: "radius", in: state)
-        let inboxResults = RootSearchIndex.results(for: "mail", in: state)
+        let contactsResults = RootSearchIndex.results(for: "network", in: state)
 
         #expect(radiusResults.pages == [.radius])
-        #expect(inboxResults.pages == [.inbox])
+        #expect(contactsResults.pages == [.contacts])
     }
 
     @Test func rootSearchTrimsWhitespace() {
@@ -290,20 +434,13 @@ struct snsTests {
         #expect(router.selectedTab == .match)
         #expect(router.lastContentTab == .match)
         #expect(router.matchPath.isEmpty)
-        #expect(router.networkPath.isEmpty)
         #expect(router.profilePath.isEmpty)
         #expect(router.searchPath.isEmpty)
         #expect(router.isRootSearchPresented == false)
-        #expect(router.activeRootModal == nil)
     }
 
     @Test func appRouterTracksLastContentTab() {
         let router = AppRouter()
-
-        router.select(.network)
-
-        #expect(router.selectedTab == .network)
-        #expect(router.lastContentTab == .network)
 
         router.select(.profile)
 
@@ -334,27 +471,14 @@ struct snsTests {
         let contactID = AppContact(name: "Ava Thompson").id
 
         router.openPage(.radius)
-        router.openContact(contactID, from: .network)
+        router.openContact(contactID, from: .match)
         router.openPage(.sexuality, from: .profile)
         router.openMyCard(from: .search)
-        router.openMatchMessages("Ava Thompson", from: .match)
+        router.openMatchCriteria(from: .match)
 
-        #expect(router.matchPath == [.page(.radius), .matchMessages("Ava Thompson")])
-        #expect(router.networkPath == [.contact(contactID)])
+        #expect(router.matchPath == [.page(.radius), .contact(contactID), .matchCriteria])
         #expect(router.profilePath == [.page(.sexuality)])
         #expect(router.searchPath == [.myCard])
-    }
-
-    @Test func appRouterShowsAndDismissesRootModal() {
-        let router = AppRouter()
-
-        router.showRootModal(.privateMailInfo)
-
-        #expect(router.activeRootModal == .privateMailInfo)
-
-        router.dismissRootModal()
-
-        #expect(router.activeRootModal == nil)
     }
 
     @Test func appRouterFutureFlowHooksAreNoOps() {
@@ -366,10 +490,8 @@ struct snsTests {
         #expect(router.selectedTab == .match)
         #expect(router.lastContentTab == .match)
         #expect(router.matchPath.isEmpty)
-        #expect(router.networkPath.isEmpty)
         #expect(router.profilePath.isEmpty)
         #expect(router.searchPath.isEmpty)
-        #expect(router.activeRootModal == nil)
     }
 
     private func testCalendar() -> Calendar {

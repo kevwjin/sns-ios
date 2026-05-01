@@ -1,4 +1,6 @@
+import PhotosUI
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @Bindable var appState: AppState
@@ -15,6 +17,25 @@ struct ProfileTabView: View {
 
     var body: some View {
         List {
+            Section {
+                NavigationLink(value: RootDestination.myCard) {
+                    HStack(spacing: 14) {
+                        MyCardAvatarView(contact: appState.myCard, size: 56)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(appState.myCard.name)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text("My Card")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 6)
+                }
+                .accessibilityIdentifier("My Card Row")
+            }
+
             Section("Account") {
                 NavigationLink(value: RootDestination.profileField(.age)) {
                     preferenceValueRow(title: "Age", value: "\(appState.age)", systemImage: "number")
@@ -35,48 +56,23 @@ struct ProfileTabView: View {
                     preferenceValueRow(title: "Sexuality", value: appState.sexuality.label, systemImage: "heart.circle")
                 }
                 .accessibilityIdentifier("Account Sexuality Row")
-
-                NavigationLink(value: RootDestination.profileField(.substanceUse)) {
-                    preferenceValueRow(title: "Substance Use", value: appState.substanceUseSummary, systemImage: "checklist")
-                }
-                .accessibilityIdentifier("Account Substance Use Row")
             }
 
-            Section("Match Criteria") {
-                NavigationLink(value: RootDestination.page(.location)) {
-                    preferenceValueRow(title: "Location", value: appState.matchingLocation, systemImage: "location.fill")
-                }
-                .accessibilityIdentifier("Location Row")
+            Section("Substance Use") {
+                substanceUseRows(
+                    destination: .profileField(.substanceUse),
+                    selection: appState.substanceUse,
+                    selectedValue: "Listed",
+                    unselectedValue: "Not listed",
+                    accessibilityPrefix: "Account"
+                )
+            }
 
-                NavigationLink(value: RootDestination.page(.radius)) {
-                    preferenceValueRow(title: "Radius", value: "Within \(appState.matchingRadiusMiles) mi", systemImage: "scope")
+            Section("Logbook") {
+                NavigationLink(value: RootDestination.page(.logbook)) {
+                    preferenceValueRow(title: "Logbook", value: "\(MockData.logbookItems.count) events", systemImage: "checklist")
                 }
-                .accessibilityIdentifier("Radius Row")
-
-                NavigationLink(value: RootDestination.page(.ageRange)) {
-                    preferenceValueRow(title: "Age Range", value: "\(appState.preferredAgeMin)-\(appState.preferredAgeMax)", systemImage: "slider.horizontal.3")
-                }
-                .accessibilityIdentifier("Age Range Row")
-
-                NavigationLink(value: RootDestination.page(.matchWith)) {
-                    preferenceValueRow(title: "Gender", value: appState.preferredGendersSummary, systemImage: "person.2.circle")
-                }
-                .accessibilityIdentifier("Criteria Gender Row")
-
-                NavigationLink(value: RootDestination.page(.sexuality)) {
-                    preferenceValueRow(title: "Sexuality", value: appState.preferredSexualitiesSummary, systemImage: "heart.circle")
-                }
-                .accessibilityIdentifier("Criteria Sexuality Row")
-
-                NavigationLink(value: RootDestination.page(.substanceUse)) {
-                    preferenceValueRow(title: "Substance Use", value: appState.acceptedSubstanceUseSummary, systemImage: "checklist")
-                }
-                .accessibilityIdentifier("Criteria Substance Use Row")
-
-                NavigationLink(value: RootDestination.page(.matchPolicy)) {
-                    preferenceValueRow(title: "Match Policy", value: appState.matchPolicy.label, systemImage: "person.2.wave.2.fill")
-                }
-                .accessibilityIdentifier("Match Policy Row")
+                .accessibilityIdentifier("Logbook Row")
             }
         }
         .navigationTitle("Profile")
@@ -97,6 +93,254 @@ struct ProfileTabView: View {
             Text(value)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.trailing)
+        }
+    }
+
+    private func substanceUseRows(
+        destination: RootDestination,
+        selection: Set<SubstanceUseCategory>,
+        selectedValue: String,
+        unselectedValue: String,
+        accessibilityPrefix: String
+    ) -> some View {
+        ForEach(Array(SubstanceUseCategory.allCases), id: \.self) { substance in
+            NavigationLink(value: destination) {
+                preferenceValueRow(
+                    title: substance.label,
+                    value: selection.contains(substance) ? selectedValue : unselectedValue,
+                    systemImage: substance.systemImage
+                )
+            }
+            .accessibilityIdentifier("\(accessibilityPrefix) \(substance.label) Substance Use Row")
+        }
+    }
+}
+
+struct MyCardDetailView: View {
+    @Binding var contact: AppContact
+    @State private var isEditing = false
+    @State private var isPhotoPickerPresented = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+
+    var body: some View {
+        Form {
+            Section {
+                VStack(spacing: 12) {
+                    MyCardAvatarView(contact: contact, size: 96)
+                        .accessibilityIdentifier("My Card Avatar")
+
+                    if isEditing && !isPhotoPickerDisabled {
+                        Button {
+                            isPhotoPickerPresented = true
+                        } label: {
+                            Label("Choose Photo", systemImage: "photo")
+                        }
+                        .accessibilityIdentifier("Choose My Card Photo")
+
+                        if contact.photoData != nil {
+                            Button("Remove Photo", role: .destructive) {
+                                contact.photoData = nil
+                                selectedPhotoItem = nil
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+            }
+
+            if isEditing {
+                Section("Name") {
+                    TextField("First Name", text: $contact.firstName)
+                        .textContentType(.givenName)
+                        .accessibilityIdentifier("My Card First Name Field")
+                    TextField("Last Name", text: $contact.lastName)
+                        .textContentType(.familyName)
+                        .accessibilityIdentifier("My Card Last Name Field")
+                }
+
+                Section("Preferred Contact") {
+                    Picker("Method", selection: $contact.preferredContactMethod) {
+                        ForEach(PreferredContactMethod.allCases) { method in
+                            Text(method.label).tag(method)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    TextField(preferredContactPlaceholder, text: preferredContactBinding)
+                        .keyboardType(preferredContactKeyboardType)
+                        .textInputAutocapitalization(preferredContactAutocapitalization)
+                        .autocorrectionDisabled(preferredContactAutocorrectionDisabled)
+                        .accessibilityIdentifier("My Card Preferred Contact Field")
+                }
+            } else {
+                Section("Name") {
+                    detailRow(title: "First Name", value: contact.firstName)
+                    detailRow(title: "Last Name", value: contact.lastName)
+                }
+
+                Section("Preferred Contact") {
+                    detailRow(title: "Method", value: contact.preferredContactMethod.label)
+                    detailRow(title: contact.preferredContactMethod.label, value: contact.preferredContactSummary)
+                }
+            }
+        }
+        .navigationTitle("My Card")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(isEditing ? "Done" : "Edit") {
+                    isEditing.toggle()
+                }
+            }
+        }
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            Task {
+                await loadPhoto(from: newItem)
+            }
+        }
+        .modifier(MyCardPhotoPickerModifier(
+            isDisabled: isPhotoPickerDisabled,
+            isPresented: $isPhotoPickerPresented,
+            selection: $selectedPhotoItem
+        ))
+    }
+
+    private var preferredContactPlaceholder: String {
+        switch contact.preferredContactMethod {
+        case .email:
+            "Email"
+        case .phone:
+            "Phone"
+        case .sns:
+            "SNS handle"
+        case .other:
+            "Contact details"
+        }
+    }
+
+    private var preferredContactKeyboardType: UIKeyboardType {
+        switch contact.preferredContactMethod {
+        case .email:
+            .emailAddress
+        case .phone:
+            .phonePad
+        case .sns, .other:
+            .default
+        }
+    }
+
+    private var preferredContactAutocapitalization: TextInputAutocapitalization {
+        switch contact.preferredContactMethod {
+        case .email, .sns:
+            .never
+        case .phone, .other:
+            .sentences
+        }
+    }
+
+    private var preferredContactAutocorrectionDisabled: Bool {
+        switch contact.preferredContactMethod {
+        case .email, .phone, .sns:
+            true
+        case .other:
+            false
+        }
+    }
+
+    private var preferredContactBinding: Binding<String> {
+        Binding(
+            get: {
+                contact.preferredContactValue
+            },
+            set: { newValue in
+                switch contact.preferredContactMethod {
+                case .email:
+                    contact.email = newValue
+                case .phone:
+                    contact.phone = newValue
+                case .sns, .other:
+                    contact.preferredContactDetail = newValue
+                }
+            }
+        )
+    }
+
+    private var isPhotoPickerDisabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-snsUITestDisablePhotoPicker")
+    }
+
+    @ViewBuilder
+    private func detailRow(title: String, value: String) -> some View {
+        if !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            HStack {
+                Text(title)
+                Spacer()
+                Text(value)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+            }
+        }
+    }
+
+    private func loadPhoto(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+        await MainActor.run {
+            contact.photoData = data
+        }
+    }
+}
+
+private struct MyCardPhotoPickerModifier: ViewModifier {
+    let isDisabled: Bool
+    @Binding var isPresented: Bool
+    @Binding var selection: PhotosPickerItem?
+
+    func body(content: Content) -> some View {
+        if isDisabled {
+            content
+        } else {
+            content.photosPicker(isPresented: $isPresented, selection: $selection, matching: .images)
+        }
+    }
+}
+
+struct MyCardAvatarView: View {
+    let contact: AppContact
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.accentColor.opacity(0.16))
+
+            if let photoData = contact.photoData, let image = UIImage(data: photoData) {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+            } else {
+                Text(contact.initials)
+                    .font(.system(size: size * 0.38, weight: .semibold, design: .serif))
+                    .foregroundStyle(Color.accentColor)
+                    .accessibilityIdentifier("My Card Initials Avatar")
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityLabel("My Card photo")
+    }
+}
+
+extension SubstanceUseCategory {
+    var systemImage: String {
+        switch self {
+        case .vaping: "wind"
+        case .smoking: "flame"
+        case .marijuana: "leaf"
+        case .drinking: "wineglass"
+        case .other: "ellipsis.circle"
         }
     }
 }

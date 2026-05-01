@@ -16,6 +16,7 @@ final class snsUITests: XCTestCase {
         continueAfterFailure = false
 
         // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+        XCUIDevice.shared.orientation = .portrait
     }
 
     override func tearDownWithError() throws {
@@ -28,33 +29,54 @@ final class snsUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.tabBars.buttons["Match"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.tabBars.buttons["Network"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Network"].exists)
         XCTAssertTrue(app.tabBars.buttons["Profile"].exists)
         XCTAssertTrue(app.tabBars.buttons["Search"].exists)
         XCTAssertTrue(app.staticTexts["Weekly Batch"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.otherElements["Weekly Availability Editor"].exists)
-        XCTAssertTrue(app.staticTexts["Add availability to enroll"].exists)
-        XCTAssertTrue(app.staticTexts["Add at least one available time window before enrolling."].exists)
-        scrollToElement(app.staticTexts["Current Match"], in: app)
-        XCTAssertTrue(app.staticTexts["Current Match"].exists)
-        XCTAssertFalse(app.staticTexts["Match Criteria"].exists)
-        XCTAssertFalse(app.staticTexts["Account"].exists)
+        XCTAssertTrue(app.buttons["Weekly Batch Row"].exists)
+        XCTAssertTrue(app.staticTexts["Set availability"].exists)
+        XCTAssertFalse(app.otherElements["Weekly Availability Grid"].exists)
+        XCTAssertFalse(app.otherElements["Weekly Batch Enrollment Slider"].exists)
+        XCTAssertTrue(app.staticTexts["No match yet"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["No Match Mailbox Icon"].exists)
+        XCTAssertFalse(app.staticTexts["Current Match"].exists)
+        XCTAssertTrue(app.buttons["Match Criteria Row"].exists)
+        XCTAssertFalse(app.buttons["Location Row"].exists)
+        XCTAssertFalse(app.staticTexts["Identity"].exists)
         XCTAssertFalse(app.staticTexts["Eligible Contacts"].exists)
-
-        app.tabBars.buttons["Network"].tap()
-
-        XCTAssertTrue(app.staticTexts["Mail"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Mail Inbox Row"].exists)
-        XCTAssertTrue(app.staticTexts["Contacts"].exists)
-        scrollToElement(app.buttons["Logbook Row"], in: app)
-        XCTAssertTrue(app.buttons["Logbook Row"].exists)
+        XCTAssertFalse(app.staticTexts["Mail"].exists)
+        XCTAssertFalse(app.buttons["Mail Inbox Row"].exists)
+        scrollToElement(app.buttons["Contacts Row"], in: app)
+        XCTAssertTrue(app.staticTexts["Network"].exists)
+        XCTAssertFalse(app.buttons["My Card Row"].exists)
+        XCTAssertTrue(app.buttons["Contacts Row"].exists)
+        XCTAssertTrue(app.buttons["Groups Row"].exists)
+        XCTAssertFalse(app.buttons["Logbook Row"].exists)
 
         app.tabBars.buttons["Profile"].tap()
 
         XCTAssertTrue(app.staticTexts["Account"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Match Criteria"].exists)
+        XCTAssertTrue(app.staticTexts["Substance Use"].exists)
+        XCTAssertTrue(app.buttons["My Card Row"].exists)
         XCTAssertTrue(app.buttons["Account Gender Row"].exists)
-        XCTAssertTrue(app.buttons["Criteria Substance Use Row"].exists)
+        scrollToElement(app.buttons["Logbook Row"], in: app)
+        XCTAssertTrue(app.buttons["Logbook Row"].exists)
+        XCTAssertFalse(app.staticTexts["Match Criteria"].exists)
+        XCTAssertFalse(app.buttons["Criteria Drinking Substance Use Row"].exists)
+    }
+
+    @MainActor
+    func testMatchTabShowsAnonymousMatchProfileWhenMatched() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("-snsUITestHasMatch")
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["This week's match"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["26 · they/them · Hayes Valley"].exists)
+        XCTAssertTrue(app.staticTexts["Coffee"].exists)
+        XCTAssertFalse(app.staticTexts["Alex Rivera"].exists)
+        XCTAssertFalse(app.staticTexts["Current Match"].exists)
+        XCTAssertFalse(app.buttons["Current Match"].exists)
     }
 
     @MainActor
@@ -109,7 +131,7 @@ final class snsUITests: XCTestCase {
     }
 
     @MainActor
-    func testRootSearchFindsInboxPageByMailKeyword() throws {
+    func testRootSearchDoesNotShowMailPage() throws {
         let app = XCUIApplication()
         app.launch()
 
@@ -119,12 +141,8 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         app.typeText("mail")
 
-        XCTAssertTrue(app.staticTexts["Pages"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Quick Search Page Inbox"].exists)
-        app.buttons["Quick Search Page Inbox"].tap()
-
-        XCTAssertTrue(app.navigationBars["Inbox"].waitForExistence(timeout: 2))
-        assertRootTabsHidden(in: app)
+        XCTAssertTrue(app.staticTexts["No results"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["Quick Search Page Inbox"].exists)
     }
 
     @MainActor
@@ -154,18 +172,19 @@ final class snsUITests: XCTestCase {
         dismissSearch(in: app)
 
         XCTAssertTrue(app.staticTexts["Weekly Batch"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.otherElements["Weekly Availability Editor"].exists)
-        XCTAssertFalse(app.staticTexts["Match Criteria"].exists)
+        XCTAssertTrue(app.buttons["Weekly Batch Row"].exists)
+        XCTAssertFalse(app.otherElements["Weekly Availability Grid"].exists)
+        XCTAssertTrue(app.buttons["Match Criteria Row"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].isSelected)
     }
 
     @MainActor
-    func testSearchDismissReturnsToNetworkTab() throws {
+    func testSearchDismissReturnsToProfileTab() throws {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Network"].tap()
-        XCTAssertTrue(app.staticTexts["Mail"].waitForExistence(timeout: 2))
+        app.tabBars.buttons["Profile"].tap()
+        XCTAssertTrue(app.staticTexts["Identity"].waitForExistence(timeout: 2))
 
         app.tabBars.buttons["Search"].tap()
 
@@ -174,8 +193,8 @@ final class snsUITests: XCTestCase {
         app.typeText("Ava")
         dismissSearch(in: app)
 
-        XCTAssertTrue(app.staticTexts["Mail"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Network"].exists)
+        XCTAssertTrue(app.staticTexts["Identity"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Account Gender Row"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].isSelected)
     }
 
@@ -190,27 +209,113 @@ final class snsUITests: XCTestCase {
         dismissSearch(in: app)
 
         XCTAssertTrue(app.staticTexts["Weekly Batch"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.otherElements["Weekly Availability Editor"].exists)
-        XCTAssertFalse(app.staticTexts["Match Criteria"].exists)
+        XCTAssertTrue(app.buttons["Weekly Batch Row"].exists)
+        XCTAssertFalse(app.otherElements["Weekly Availability Grid"].exists)
+        XCTAssertTrue(app.buttons["Match Criteria Row"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].isSelected)
     }
 
     @MainActor
-    func testEmptySearchDismissReturnsToNetworkTab() throws {
+    func testEmptySearchDismissReturnsToProfileTab() throws {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Network"].tap()
-        XCTAssertTrue(app.staticTexts["Mail"].waitForExistence(timeout: 2))
+        app.tabBars.buttons["Profile"].tap()
+        XCTAssertTrue(app.staticTexts["Identity"].waitForExistence(timeout: 2))
 
         app.tabBars.buttons["Search"].tap()
 
         XCTAssertTrue(app.searchFields["Quick Search"].waitForExistence(timeout: 2))
         dismissSearch(in: app)
 
-        XCTAssertTrue(app.staticTexts["Mail"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Network"].exists)
+        XCTAssertTrue(app.staticTexts["Identity"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Account Gender Row"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].isSelected)
+    }
+
+    @MainActor
+    func testWeeklyAvailabilityGridDragUnlocksEnrollment() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Weekly Batch Row"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.otherElements["Weekly Availability Grid"].exists)
+        XCTAssertFalse(app.otherElements["Weekly Batch Enrollment Slider"].exists)
+        app.buttons["Weekly Batch Row"].tap()
+
+        let grid = app.otherElements["Weekly Availability Grid"]
+        XCTAssertTrue(grid.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Continue Enrollment"].exists)
+        XCTAssertFalse(app.buttons["Continue Enrollment"].isEnabled)
+        XCTAssertFalse(app.staticTexts["Slide to Enroll"].exists)
+
+        let mondayColumn = app.otherElements["Availability Day Monday"]
+        XCTAssertTrue(mondayColumn.waitForExistence(timeout: 2))
+        mondayColumn.swipeUp()
+        XCTAssertFalse(app.otherElements["Active Availability Window"].exists)
+
+        app.terminate()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Weekly Batch Row"].waitForExistence(timeout: 2))
+        app.buttons["Weekly Batch Row"].tap()
+
+        let cleanGrid = app.otherElements["Weekly Availability Grid"]
+        XCTAssertTrue(cleanGrid.waitForExistence(timeout: 2))
+        longPressDragWithin(cleanGrid, from: CGVector(dx: 0.23, dy: 0.16), to: CGVector(dx: 0.23, dy: 0.24))
+
+        XCTAssertTrue(app.otherElements["Active Availability Window"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Continue Enrollment"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Continue Enrollment"].isEnabled)
+
+        let tuesdayColumn = app.otherElements["Availability Day Tuesday"]
+        XCTAssertTrue(tuesdayColumn.waitForExistence(timeout: 2))
+        longPressDragWithin(cleanGrid, from: CGVector(dx: 0.35, dy: 0.28), to: CGVector(dx: 0.35, dy: 0.36))
+
+        XCTAssertTrue(app.otherElements["Filled Availability Window"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.otherElements["Active Availability Window"].exists)
+
+        XCTAssertTrue(app.buttons["Delete Availability Window"].waitForExistence(timeout: 2))
+        app.buttons["Delete Availability Window"].tap()
+
+        XCTAssertTrue(app.staticTexts["1 time window"].waitForExistence(timeout: 2))
+        app.buttons["Continue Enrollment"].tap()
+        XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Enrollment is final."].exists)
+    }
+
+    @MainActor
+    func testWeeklyAvailabilityReadOnlyAfterEnrollment() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Weekly Batch Row"].waitForExistence(timeout: 2))
+        app.buttons["Weekly Batch Row"].tap()
+
+        let mondayColumn = app.otherElements["Availability Day Monday"]
+        XCTAssertTrue(mondayColumn.waitForExistence(timeout: 2))
+        longPressDragWithin(mondayColumn, from: CGVector(dx: 0.5, dy: 0.10), to: CGVector(dx: 0.5, dy: 0.18))
+
+        XCTAssertTrue(app.buttons["Continue Enrollment"].waitForExistence(timeout: 2))
+        app.buttons["Continue Enrollment"].tap()
+
+        let slider = app.otherElements["Weekly Batch Enrollment Slider"]
+        XCTAssertTrue(slider.waitForExistence(timeout: 2))
+        dragWithin(slider, from: CGVector(dx: 0.12, dy: 0.5), to: CGVector(dx: 0.94, dy: 0.5))
+
+        XCTAssertTrue(app.navigationBars["Enrolled"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["You're enrolled for this week."].exists)
+        XCTAssertFalse(app.buttons["Delete Availability Window"].exists)
+        XCTAssertFalse(app.otherElements["Availability Start Handle"].exists)
+        XCTAssertFalse(app.otherElements["Availability End Handle"].exists)
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["Weekly Batch Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Enrolled"].exists)
+
+        app.buttons["Weekly Batch Row"].tap()
+        XCTAssertTrue(app.navigationBars["Enrolled"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["Delete Availability Window"].exists)
     }
 
     @MainActor
@@ -218,7 +323,8 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Profile"].tap()
+        openMatchCriteria(in: app)
+        scrollToElement(app.buttons["Radius Row"], in: app)
         XCTAssertTrue(app.staticTexts["Within 10 mi"].waitForExistence(timeout: 2))
 
         app.buttons["Radius Row"].tap()
@@ -233,9 +339,12 @@ final class snsUITests: XCTestCase {
 
         app.navigationBars["Radius"].buttons.firstMatch.tap()
 
+        XCTAssertTrue(app.navigationBars["Match Criteria"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Within 10 mi"].waitForExistence(timeout: 2))
+        app.navigationBars["Match Criteria"].buttons.firstMatch.tap()
+
         XCTAssertTrue(app.tabBars.buttons["Match"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.tabBars.buttons["Network"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Network"].exists)
         XCTAssertTrue(app.tabBars.buttons["Profile"].exists)
         XCTAssertTrue(app.tabBars.buttons["Search"].exists)
     }
@@ -245,7 +354,7 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Profile"].tap()
+        openMatchCriteria(in: app)
         XCTAssertTrue(app.buttons["Location Row"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["SoMa"].exists)
         app.buttons["Location Row"].tap()
@@ -293,10 +402,11 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Profile"].tap()
+        openMatchCriteria(in: app)
         XCTAssertTrue(app.buttons["Location Row"].waitForExistence(timeout: 2))
         app.buttons["Location Row"].tap()
 
+        XCTAssertTrue(app.navigationBars["Location"].waitForExistence(timeout: 2))
         let searchField = app.textFields["Address, neighborhood, or zip"]
         XCTAssertTrue(searchField.waitForExistence(timeout: 2))
         searchField.tap()
@@ -306,32 +416,118 @@ final class snsUITests: XCTestCase {
     }
 
     @MainActor
-    func testProfileTabShowsAccountAndMatchCriteria() throws {
+    func testProfileTabShowsAccount() throws {
         let app = XCUIApplication()
         app.launch()
 
         app.tabBars.buttons["Profile"].tap()
 
-        XCTAssertTrue(app.staticTexts["Account"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["My Card Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["My Name"].exists)
+        XCTAssertTrue(app.staticTexts["My Card"].exists)
+        XCTAssertTrue(app.staticTexts["Identity"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Substance Use"].exists)
         XCTAssertTrue(app.buttons["Account Age Row"].exists)
         XCTAssertTrue(app.buttons["Account Gender Row"].exists)
         XCTAssertTrue(app.buttons["Account Pronouns Row"].exists)
         XCTAssertTrue(app.buttons["Account Sexuality Row"].exists)
-        XCTAssertTrue(app.buttons["Account Substance Use Row"].exists)
+        XCTAssertTrue(app.buttons["Account Vaping Substance Use Row"].exists)
+        XCTAssertTrue(app.buttons["Account Smoking Substance Use Row"].exists)
+        XCTAssertTrue(app.buttons["Account Marijuana Substance Use Row"].exists)
+        XCTAssertTrue(app.buttons["Account Drinking Substance Use Row"].exists)
+        XCTAssertTrue(app.buttons["Account Other Substance Use Row"].exists)
         XCTAssertTrue(app.staticTexts["Female"].exists)
         XCTAssertTrue(app.staticTexts["she/her"].exists)
         XCTAssertTrue(app.staticTexts["Not listed"].exists)
-        XCTAssertTrue(app.staticTexts["None listed"].exists)
+        XCTAssertFalse(app.staticTexts["Match Criteria"].exists)
+        XCTAssertFalse(app.buttons["Location Row"].exists)
+    }
 
-        XCTAssertTrue(app.staticTexts["Match Criteria"].exists)
+    @MainActor
+    func testProfileMyCardEditsNameAndPreferredContact() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("-snsUITestDisablePhotoPicker")
+        app.launch()
+
+        app.tabBars.buttons["Profile"].tap()
+        XCTAssertTrue(app.buttons["My Card Row"].waitForExistence(timeout: 2))
+        app.buttons["My Card Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["My Card"].waitForExistence(timeout: 2))
+        assertRootTabsHidden(in: app)
+        XCTAssertFalse(app.switches["Use for matching"].exists)
+        XCTAssertFalse(app.staticTexts["Groups"].exists)
+        XCTAssertTrue(app.staticTexts["Email"].exists)
+
+        app.navigationBars["My Card"].buttons["Edit"].tap()
+        clearAndEnterText("Kevin", in: app.textFields["My Card First Name Field"])
+        clearAndEnterText("Jin", in: app.textFields["My Card Last Name Field"])
+        app.buttons["SNS"].tap()
+        clearAndEnterText("@kevin", in: app.textFields["My Card Preferred Contact Field"])
+        app.navigationBars["My Card"].buttons["Done"].tap()
+
+        XCTAssertTrue(app.staticTexts["Kevin"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Jin"].exists)
+        XCTAssertTrue(app.staticTexts["@kevin"].exists)
+
+        app.navigationBars["My Card"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["My Card Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Kevin Jin"].exists)
+    }
+
+    @MainActor
+    func testContactsPageDoesNotShowMyCardRow() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        scrollToElement(app.buttons["Contacts Row"], in: app)
+        app.buttons["Contacts Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Contacts"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["My Card Row"].exists)
+        XCTAssertTrue(app.staticTexts["Ava Thompson"].exists)
+    }
+
+    @MainActor
+    func testMatchTabShowsMatchCriteria() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Match Criteria Row"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["Location Row"].exists)
+
+        app.buttons["Match Criteria Row"].tap()
+        XCTAssertTrue(app.navigationBars["Match Criteria"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Location"].exists)
         XCTAssertTrue(app.buttons["Location Row"].exists)
         XCTAssertTrue(app.buttons["Radius Row"].exists)
+        XCTAssertTrue(app.staticTexts["Demographics"].exists)
         XCTAssertTrue(app.buttons["Age Range Row"].exists)
         XCTAssertTrue(app.buttons["Criteria Gender Row"].exists)
+
+        scrollToElement(app.buttons["Criteria Sexuality Row"], in: app)
         XCTAssertTrue(app.buttons["Criteria Sexuality Row"].exists)
-        XCTAssertTrue(app.buttons["Criteria Substance Use Row"].exists)
+
+        XCTAssertTrue(app.staticTexts["Substance Use"].exists)
+        scrollToElement(app.buttons["Criteria Vaping Substance Use Row"], in: app)
+        XCTAssertTrue(app.buttons["Criteria Vaping Substance Use Row"].exists)
+
+        scrollToElement(app.buttons["Criteria Smoking Substance Use Row"], in: app)
+        XCTAssertTrue(app.buttons["Criteria Smoking Substance Use Row"].exists)
+
+        scrollToElement(app.buttons["Criteria Marijuana Substance Use Row"], in: app)
+        XCTAssertTrue(app.buttons["Criteria Marijuana Substance Use Row"].exists)
+
+        scrollToElement(app.buttons["Criteria Drinking Substance Use Row"], in: app)
+        XCTAssertTrue(app.buttons["Criteria Drinking Substance Use Row"].exists)
+
+        scrollToElement(app.buttons["Criteria Other Substance Use Row"], in: app)
+        XCTAssertTrue(app.buttons["Criteria Other Substance Use Row"].exists)
+
+        XCTAssertTrue(app.staticTexts["Matching"].exists)
+        scrollToElement(app.buttons["Match Policy Row"], in: app)
         XCTAssertTrue(app.buttons["Match Policy Row"].exists)
-        XCTAssertTrue(app.staticTexts["Open to all"].exists)
+        XCTAssertTrue(app.buttons["Criteria Other Substance Use Row"].label.contains("Open"))
     }
 
     @MainActor
@@ -348,12 +544,14 @@ final class snsUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["they/them"].waitForExistence(timeout: 2))
 
-        app.buttons["Account Substance Use Row"].tap()
+        scrollToElement(app.buttons["Account Drinking Substance Use Row"], in: app)
+        app.buttons["Account Drinking Substance Use Row"].tap()
         XCTAssertTrue(app.navigationBars["Substance Use"].waitForExistence(timeout: 2))
         app.buttons["Drinking"].tap()
         app.navigationBars["Substance Use"].buttons.firstMatch.tap()
 
-        XCTAssertTrue(app.staticTexts["Drinking"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Account Drinking Substance Use Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Account Drinking Substance Use Row"].label.contains("Listed"))
     }
 
     @MainActor
@@ -361,10 +559,11 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Profile"].tap()
-        let criteriaSubstanceUseRow = app.buttons["Criteria Substance Use Row"]
+        openMatchCriteria(in: app)
+        let criteriaSubstanceUseRow = app.buttons["Criteria Drinking Substance Use Row"]
+        scrollToElement(criteriaSubstanceUseRow, in: app)
         XCTAssertTrue(criteriaSubstanceUseRow.waitForExistence(timeout: 2))
-        XCTAssertTrue(criteriaSubstanceUseRow.label.contains("Open to all"))
+        XCTAssertTrue(criteriaSubstanceUseRow.label.contains("Open"))
         criteriaSubstanceUseRow.tap()
 
         XCTAssertTrue(app.navigationBars["Substance Use"].waitForExistence(timeout: 2))
@@ -380,7 +579,8 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Profile"].tap()
+        openMatchCriteria(in: app)
+        scrollToElement(app.buttons["Criteria Gender Row"], in: app)
         XCTAssertTrue(app.buttons["Criteria Gender Row"].waitForExistence(timeout: 2))
         app.buttons["Criteria Gender Row"].tap()
 
@@ -394,8 +594,10 @@ final class snsUITests: XCTestCase {
         app.navigationBars["Gender"].buttons.firstMatch.tap()
 
         XCTAssertTrue(app.buttons["Criteria Gender Row"].waitForExistence(timeout: 2))
+        app.navigationBars["Match Criteria"].buttons.firstMatch.tap()
+
         XCTAssertTrue(app.tabBars.buttons["Match"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.tabBars.buttons["Network"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Network"].exists)
         XCTAssertTrue(app.tabBars.buttons["Profile"].exists)
         XCTAssertTrue(app.tabBars.buttons["Search"].exists)
     }
@@ -405,7 +607,8 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Profile"].tap()
+        openMatchCriteria(in: app)
+        scrollToElement(app.buttons["Age Range Row"], in: app)
         XCTAssertTrue(app.buttons["Age Range Row"].waitForExistence(timeout: 2))
         app.buttons["Age Range Row"].tap()
 
@@ -423,7 +626,8 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Profile"].tap()
+        openMatchCriteria(in: app)
+        scrollToElement(app.buttons["Match Policy Row"], in: app)
         XCTAssertTrue(app.buttons["Match Policy Row"].waitForExistence(timeout: 2))
         app.buttons["Match Policy Row"].tap()
 
@@ -434,49 +638,11 @@ final class snsUITests: XCTestCase {
     }
 
     @MainActor
-    func testMailInboxAndThreadOpenFromRoot() throws {
-        let app = XCUIApplication()
-        app.launch()
-
-        app.tabBars.buttons["Network"].tap()
-
-        XCTAssertTrue(app.buttons["Mail Inbox Row"].waitForExistence(timeout: 2))
-        app.buttons["Mail Inbox Row"].tap()
-
-        XCTAssertTrue(app.navigationBars["Inbox"].waitForExistence(timeout: 2))
-        assertRootTabsHidden(in: app)
-        XCTAssertTrue(app.staticTexts["Coffee after the batch?"].exists)
-
-        app.buttons["Mail Thread Coffee after the batch?"].tap()
-
-        XCTAssertTrue(app.navigationBars["Mail"].waitForExistence(timeout: 2))
-        assertRootTabsHidden(in: app)
-        XCTAssertTrue(app.staticTexts["Coffee after the batch?"].exists)
-        XCTAssertTrue(app.textFields["Reply"].exists)
-    }
-
-    @MainActor
-    func testMailInfoExplainsPrivateDelivery() throws {
-        let app = XCUIApplication()
-        app.launch()
-
-        app.tabBars.buttons["Network"].tap()
-
-        XCTAssertTrue(app.buttons["Private Mail Info"].waitForExistence(timeout: 2))
-        app.buttons["Private Mail Info"].tap()
-
-        XCTAssertTrue(app.alerts["Private Mail"].waitForExistence(timeout: 2))
-        let bodyText = "Mail is designed for private, slower messages. Delivery may take longer because messages are routed in a way that avoids exposing direct connection details. Use it like email, not instant chat."
-        let bodyPredicate = NSPredicate(format: "label == %@", bodyText)
-        XCTAssertTrue(app.alerts["Private Mail"].staticTexts.matching(bodyPredicate).firstMatch.exists)
-    }
-
-    @MainActor
     func testGroupsPriorityInfoOpens() throws {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Network"].tap()
+        scrollToElement(app.buttons["Groups Row"], in: app)
 
         app.buttons["Groups Row"].tap()
 
@@ -490,7 +656,7 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["Network"].tap()
+        app.tabBars.buttons["Profile"].tap()
 
         scrollToElement(app.buttons["Logbook Row"], in: app)
         app.buttons["Logbook Row"].tap()
@@ -516,6 +682,35 @@ final class snsUITests: XCTestCase {
         }
     }
 
+    private func openMatchCriteria(in app: XCUIApplication) {
+        XCTAssertTrue(app.buttons["Match Criteria Row"].waitForExistence(timeout: 2))
+        app.buttons["Match Criteria Row"].tap()
+        XCTAssertTrue(app.navigationBars["Match Criteria"].waitForExistence(timeout: 2))
+    }
+
+    private func dragWithin(_ element: XCUIElement, from startOffset: CGVector, to endOffset: CGVector) {
+        let start = element.coordinate(withNormalizedOffset: startOffset)
+        let end = element.coordinate(withNormalizedOffset: endOffset)
+        start.press(forDuration: 0.1, thenDragTo: end)
+    }
+
+    private func longPressDragWithin(_ element: XCUIElement, from startOffset: CGVector, to endOffset: CGVector) {
+        let start = element.coordinate(withNormalizedOffset: startOffset)
+        let end = element.coordinate(withNormalizedOffset: endOffset)
+        start.press(forDuration: 0.35, thenDragTo: end)
+    }
+
+    private func clearAndEnterText(_ text: String, in element: XCUIElement) {
+        XCTAssertTrue(element.waitForExistence(timeout: 2))
+        element.tap()
+
+        if let value = element.value as? String, !value.isEmpty {
+            element.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count))
+        }
+
+        element.typeText(text)
+    }
+
     private func dismissSearch(in app: XCUIApplication) {
         let closeButton = app.buttons["Close"].firstMatch
         if closeButton.waitForExistence(timeout: 1) {
@@ -530,7 +725,6 @@ final class snsUITests: XCTestCase {
 
     private func assertRootTabsHidden(in app: XCUIApplication) {
         XCTAssertFalse(app.tabBars.buttons["Match"].waitForExistence(timeout: 1))
-        XCTAssertFalse(app.tabBars.buttons["Network"].exists)
         XCTAssertFalse(app.tabBars.buttons["Profile"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].exists)
     }

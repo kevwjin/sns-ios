@@ -1,6 +1,22 @@
 import Foundation
 import Observation
 
+struct AnonymousMatchProfile: Hashable {
+    var age: Int
+    var pronouns: String
+    var neighborhood: String
+    var bio: String
+    var interests: [String]
+
+    static let mock = AnonymousMatchProfile(
+        age: 26,
+        pronouns: "they/them",
+        neighborhood: "Hayes Valley",
+        bio: "Enjoys low-key coffee, neighborhood walks, and finding quiet places to talk.",
+        interests: ["Coffee", "Walks", "Design", "Books"]
+    )
+}
+
 @MainActor
 @Observable
 final class HomeViewModel {
@@ -13,9 +29,16 @@ final class HomeViewModel {
     var secondsUntilMatchRelease = 5
 
     let batchEndsAtText = "Sunday at 11:59 PM"
-    let simulatedMatchName = "Alex Rivera"
+    let matchProfile = AnonymousMatchProfile.mock
 
     private var matchTimerTask: Task<Void, Never>?
+
+    init() {
+        if ProcessInfo.processInfo.arguments.contains("-snsUITestHasMatch") {
+            isEnrolledInBatch = true
+            hasMatchThisWeek = true
+        }
+    }
 
     func cancelEnrollment() {
         sliderResetTrigger += 1
