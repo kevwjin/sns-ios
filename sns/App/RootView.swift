@@ -65,6 +65,16 @@ struct RootView: View {
                 .toolbarVisibility(router.networkPath.isEmpty ? .visible : .hidden, for: .tabBar)
             }
 
+            Tab("Profile", systemImage: RootTab.profile.systemImage, value: RootTab.profile) {
+                NavigationStack(path: $router.profilePath) {
+                    ProfileTabView(appState: appState)
+                        .navigationDestination(for: RootDestination.self) { destination in
+                            rootDestination(for: destination)
+                        }
+                }
+                .toolbarVisibility(router.profilePath.isEmpty ? .visible : .hidden, for: .tabBar)
+            }
+
             Tab("Search", systemImage: RootTab.search.systemImage, value: RootTab.search, role: .search) {
                 NavigationStack(path: $router.searchPath) {
                     RootSearchView(
@@ -104,14 +114,23 @@ struct RootView: View {
                     .accessibilityIdentifier("Batch Info")
                 }
 
+                WeeklyAvailabilityEditor(
+                    appState: appState,
+                    isLocked: homeViewModel.isEnrolledInBatch
+                )
+
+                Divider()
+                    .padding(.vertical, 2)
+
                 SlideToEnrollControl(
                     isEnrolledInBatch: homeViewModel.isEnrolledInBatch,
+                    isEnabled: appState.hasCompleteWeeklyAvailability,
                     resetTrigger: homeViewModel.sliderResetTrigger
                 ) {
                     homeViewModel.showEnrollConfirmation = true
                 }
 
-                Text(homeViewModel.isEnrolledInBatch ? "You're enrolled for this week." : "Enrolling is final and cannot be undone.")
+                Text(batchEnrollmentStatusText)
                     .font(.subheadline)
                     .foregroundStyle(homeViewModel.isEnrolledInBatch ? .green : .secondary)
             }
@@ -133,39 +152,18 @@ struct RootView: View {
                 )
             }
         }
+    }
 
-        Section("Match Criteria") {
-            NavigationLink(value: RootDestination.page(.location)) {
-                valueRow(title: "Location", value: appState.matchingLocation, systemImage: "location.fill")
-            }
-            .accessibilityIdentifier("Location Row")
-
-            NavigationLink(value: RootDestination.page(.radius)) {
-                valueRow(title: "Radius", value: "Within \(appState.matchingRadiusMiles) mi", systemImage: "scope")
-            }
-            .accessibilityIdentifier("Radius Row")
-
-            NavigationLink(value: RootDestination.page(.matchWith)) {
-                valueRow(title: "Match With", value: appState.preferredGender, systemImage: "person.2.circle")
-            }
-            .accessibilityIdentifier("Match With Row")
-
-            NavigationLink(value: RootDestination.page(.ageRange)) {
-                valueRow(title: "Age Range", value: "\(appState.preferredAgeMin)-\(appState.preferredAgeMax)", systemImage: "slider.horizontal.3")
-            }
-            .accessibilityIdentifier("Age Range Row")
-
-            NavigationLink(value: RootDestination.page(.matchPolicy)) {
-                valueRow(title: "Match Policy", value: appState.matchPolicy.label, systemImage: "person.2.wave.2.fill")
-            }
-            .accessibilityIdentifier("Match Policy Row")
+    private var batchEnrollmentStatusText: String {
+        if homeViewModel.isEnrolledInBatch {
+            return "You're enrolled for this week."
         }
 
-        Section("Account") {
-            NavigationLink(value: RootDestination.page(.profile)) {
-                valueRow(title: "Profile", value: "\(appState.age), \(appState.gender)", systemImage: "person.text.rectangle")
-            }
+        if appState.hasCompleteWeeklyAvailability {
+            return "Enrolling is final and cannot be undone."
         }
+
+        return "Add at least one available time window before enrolling."
     }
 
     @ViewBuilder
@@ -244,6 +242,8 @@ struct RootView: View {
         switch destination {
         case .page(let page):
             rootPageDestination(for: page)
+        case .profileField(let field):
+            profileFieldDestination(for: field)
         case .contact(let id):
             if let contact = contactBinding(for: id) {
                 ContactDetailView(contact: contact, groups: $appState.groups)
@@ -278,7 +278,11 @@ struct RootView: View {
                 extendRadiusIfNeeded: $appState.extendRadiusIfNeeded
             )
         case .matchWith:
-            MatchWithView(preferredGender: $appState.preferredGender)
+            MatchGenderPreferenceView(preferredGenders: $appState.preferredGenders)
+        case .sexuality:
+            MatchSexualityPreferenceView(preferredSexualities: $appState.preferredSexualities)
+        case .substanceUse:
+            MatchSubstanceUsePreferenceView(acceptedSubstanceUse: $appState.acceptedSubstanceUse)
         case .ageRange:
             AgeRangePreferenceView(
                 preferredAgeMin: $appState.preferredAgeMin,
@@ -287,7 +291,29 @@ struct RootView: View {
         case .matchPolicy:
             MatchPolicyView(matchPolicy: $appState.matchPolicy)
         case .profile:
-            ProfileView(age: $appState.age, gender: $appState.gender)
+            AccountProfileView(
+                age: $appState.age,
+                gender: $appState.gender,
+                pronouns: $appState.pronouns,
+                sexuality: $appState.sexuality,
+                substanceUse: $appState.substanceUse
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func profileFieldDestination(for field: ProfileField) -> some View {
+        switch field {
+        case .age:
+            AccountAgeView(age: $appState.age)
+        case .gender:
+            AccountSingleSelectView(title: field.title, selection: $appState.gender)
+        case .pronouns:
+            AccountSingleSelectView(title: field.title, selection: $appState.pronouns)
+        case .sexuality:
+            AccountSingleSelectView(title: field.title, selection: $appState.sexuality)
+        case .substanceUse:
+            AccountSubstanceUseView(substanceUse: $appState.substanceUse)
         }
     }
 
@@ -423,6 +449,167 @@ private struct RootSearchView: View {
     private func dismissSearch() {
         searchText = ""
         onDismissSearch()
+    }
+}
+
+private struct WeeklyAvailabilityEditor: View {
+    @Bindable var appState: AppState
+    let isLocked: Bool
+
+    private var calendar: Calendar {
+        WeeklyAvailabilityCalendar.configuredCalendar()
+    }
+
+    private var selectedDateComponents: Binding<Set<DateComponents>> {
+        Binding(
+            get: {
+                Set(appState.weeklyAvailability.map {
+                    calendar.dateComponents([.calendar, .era, .year, .month, .day], from: $0.date)
+                })
+            },
+            set: {
+                appState.setWeeklyAvailabilityDates($0, calendar: calendar)
+            }
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Label("Availability", systemImage: "calendar")
+                    .font(.headline)
+
+                Spacer()
+
+                Text(appState.weeklyAvailabilitySummary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let weekRange = WeeklyAvailabilityCalendar.currentWeekDateRange(calendar: calendar) {
+                VStack(alignment: .leading, spacing: 0) {
+                    MultiDatePicker(
+                        "Available Days",
+                        selection: selectedDateComponents,
+                        in: weekRange
+                    )
+                    .disabled(isLocked)
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("Weekly Availability Calendar")
+            }
+
+            if appState.weeklyAvailability.isEmpty {
+                Text("Select the days you can meet this week.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(appState.weeklyAvailability) { day in
+                        if let dayBinding = availabilityDayBinding(for: day.id) {
+                            availabilityDayView(day: dayBinding)
+                        }
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("Weekly Availability Editor")
+    }
+
+    @ViewBuilder
+    private func availabilityDayView(day: Binding<WeeklyAvailabilityDay>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(day.wrappedValue.date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
+                    .font(.subheadline.weight(.semibold))
+
+                Spacer()
+
+                if !isLocked {
+                    Button {
+                        appState.addAvailabilityWindow(on: day.wrappedValue.date, calendar: calendar)
+                    } label: {
+                        Label("Add Window", systemImage: "plus.circle")
+                    }
+                    .font(.caption)
+                    .buttonStyle(.borderless)
+                    .accessibilityIdentifier("Add Availability Window")
+                }
+            }
+
+            if day.wrappedValue.windows.isEmpty {
+                Text(isLocked ? "No time windows added." : "Add a time window for this day.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(day.windows) { $window in
+                    if isLocked {
+                        readOnlyWindowRow(window)
+                    } else {
+                        editableWindowRow(window: $window, day: day.wrappedValue.date)
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private func editableWindowRow(window: Binding<AvailabilityWindow>, day: Date) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            DatePicker(
+                "Start",
+                selection: window.startTime,
+                displayedComponents: .hourAndMinute
+            )
+            .accessibilityIdentifier("Availability Start Time")
+
+            DatePicker(
+                "End",
+                selection: window.endTime,
+                displayedComponents: .hourAndMinute
+            )
+            .accessibilityIdentifier("Availability End Time")
+
+            HStack {
+                if !window.wrappedValue.isValid {
+                    Text("End time must be after start time.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
+                Spacer()
+
+                Button(role: .destructive) {
+                    appState.removeAvailabilityWindow(window.wrappedValue.id, on: day, calendar: calendar)
+                } label: {
+                    Label("Remove", systemImage: "minus.circle")
+                }
+                .font(.caption)
+                .buttonStyle(.borderless)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func readOnlyWindowRow(_ window: AvailabilityWindow) -> some View {
+        HStack {
+            Image(systemName: "clock")
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+
+            Text("\(window.startTime.formatted(date: .omitted, time: .shortened))-\(window.endTime.formatted(date: .omitted, time: .shortened))")
+                .font(.subheadline)
+
+            Spacer()
+        }
+    }
+
+    private func availabilityDayBinding(for id: WeeklyAvailabilityDay.ID) -> Binding<WeeklyAvailabilityDay>? {
+        guard let index = appState.weeklyAvailability.firstIndex(where: { $0.id == id }) else {
+            return nil
+        }
+
+        return $appState.weeklyAvailability[index]
     }
 }
 

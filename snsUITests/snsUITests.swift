@@ -29,11 +29,16 @@ final class snsUITests: XCTestCase {
 
         XCTAssertTrue(app.tabBars.buttons["Match"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.tabBars.buttons["Network"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Profile"].exists)
         XCTAssertTrue(app.tabBars.buttons["Search"].exists)
         XCTAssertTrue(app.staticTexts["Weekly Batch"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Within 10 mi"].exists)
-        XCTAssertTrue(app.staticTexts["Match With"].exists)
-        XCTAssertTrue(app.staticTexts["Profile"].exists)
+        XCTAssertTrue(app.otherElements["Weekly Availability Editor"].exists)
+        XCTAssertTrue(app.staticTexts["Add availability to enroll"].exists)
+        XCTAssertTrue(app.staticTexts["Add at least one available time window before enrolling."].exists)
+        scrollToElement(app.staticTexts["Current Match"], in: app)
+        XCTAssertTrue(app.staticTexts["Current Match"].exists)
+        XCTAssertFalse(app.staticTexts["Match Criteria"].exists)
+        XCTAssertFalse(app.staticTexts["Account"].exists)
         XCTAssertFalse(app.staticTexts["Eligible Contacts"].exists)
 
         app.tabBars.buttons["Network"].tap()
@@ -43,6 +48,13 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Contacts"].exists)
         scrollToElement(app.buttons["Logbook Row"], in: app)
         XCTAssertTrue(app.buttons["Logbook Row"].exists)
+
+        app.tabBars.buttons["Profile"].tap()
+
+        XCTAssertTrue(app.staticTexts["Account"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Match Criteria"].exists)
+        XCTAssertTrue(app.buttons["Account Gender Row"].exists)
+        XCTAssertTrue(app.buttons["Criteria Substance Use Row"].exists)
     }
 
     @MainActor
@@ -142,7 +154,8 @@ final class snsUITests: XCTestCase {
         dismissSearch(in: app)
 
         XCTAssertTrue(app.staticTexts["Weekly Batch"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Match Criteria"].exists)
+        XCTAssertTrue(app.otherElements["Weekly Availability Editor"].exists)
+        XCTAssertFalse(app.staticTexts["Match Criteria"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].isSelected)
     }
 
@@ -177,7 +190,8 @@ final class snsUITests: XCTestCase {
         dismissSearch(in: app)
 
         XCTAssertTrue(app.staticTexts["Weekly Batch"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Match Criteria"].exists)
+        XCTAssertTrue(app.otherElements["Weekly Availability Editor"].exists)
+        XCTAssertFalse(app.staticTexts["Match Criteria"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].isSelected)
     }
 
@@ -204,6 +218,7 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
+        app.tabBars.buttons["Profile"].tap()
         XCTAssertTrue(app.staticTexts["Within 10 mi"].waitForExistence(timeout: 2))
 
         app.buttons["Radius Row"].tap()
@@ -221,6 +236,7 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Within 10 mi"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.tabBars.buttons["Match"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.tabBars.buttons["Network"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Profile"].exists)
         XCTAssertTrue(app.tabBars.buttons["Search"].exists)
     }
 
@@ -229,6 +245,7 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
+        app.tabBars.buttons["Profile"].tap()
         XCTAssertTrue(app.buttons["Location Row"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["SoMa"].exists)
         app.buttons["Location Row"].tap()
@@ -276,6 +293,7 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
+        app.tabBars.buttons["Profile"].tap()
         XCTAssertTrue(app.buttons["Location Row"].waitForExistence(timeout: 2))
         app.buttons["Location Row"].tap()
 
@@ -288,23 +306,97 @@ final class snsUITests: XCTestCase {
     }
 
     @MainActor
-    func testMatchWithPreferenceOpensFromRoot() throws {
+    func testProfileTabShowsAccountAndMatchCriteria() throws {
         let app = XCUIApplication()
         app.launch()
 
-        XCTAssertTrue(app.buttons["Match With Row"].waitForExistence(timeout: 2))
-        app.buttons["Match With Row"].tap()
+        app.tabBars.buttons["Profile"].tap()
 
-        XCTAssertTrue(app.navigationBars["Match With"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Account"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Account Age Row"].exists)
+        XCTAssertTrue(app.buttons["Account Gender Row"].exists)
+        XCTAssertTrue(app.buttons["Account Pronouns Row"].exists)
+        XCTAssertTrue(app.buttons["Account Sexuality Row"].exists)
+        XCTAssertTrue(app.buttons["Account Substance Use Row"].exists)
+        XCTAssertTrue(app.staticTexts["Female"].exists)
+        XCTAssertTrue(app.staticTexts["she/her"].exists)
+        XCTAssertTrue(app.staticTexts["Not listed"].exists)
+        XCTAssertTrue(app.staticTexts["None listed"].exists)
+
+        XCTAssertTrue(app.staticTexts["Match Criteria"].exists)
+        XCTAssertTrue(app.buttons["Location Row"].exists)
+        XCTAssertTrue(app.buttons["Radius Row"].exists)
+        XCTAssertTrue(app.buttons["Age Range Row"].exists)
+        XCTAssertTrue(app.buttons["Criteria Gender Row"].exists)
+        XCTAssertTrue(app.buttons["Criteria Sexuality Row"].exists)
+        XCTAssertTrue(app.buttons["Criteria Substance Use Row"].exists)
+        XCTAssertTrue(app.buttons["Match Policy Row"].exists)
+        XCTAssertTrue(app.staticTexts["Open to all"].exists)
+    }
+
+    @MainActor
+    func testAccountProfileOptionsUpdateSummaries() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.tabBars.buttons["Profile"].tap()
+        app.buttons["Account Pronouns Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Pronouns"].waitForExistence(timeout: 2))
+        app.buttons["they/them"].tap()
+        app.navigationBars["Pronouns"].buttons.firstMatch.tap()
+
+        XCTAssertTrue(app.staticTexts["they/them"].waitForExistence(timeout: 2))
+
+        app.buttons["Account Substance Use Row"].tap()
+        XCTAssertTrue(app.navigationBars["Substance Use"].waitForExistence(timeout: 2))
+        app.buttons["Drinking"].tap()
+        app.navigationBars["Substance Use"].buttons.firstMatch.tap()
+
+        XCTAssertTrue(app.staticTexts["Drinking"].waitForExistence(timeout: 2))
+    }
+
+    @MainActor
+    func testMatchCriteriaMultiSelectShowsOptions() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.tabBars.buttons["Profile"].tap()
+        let criteriaSubstanceUseRow = app.buttons["Criteria Substance Use Row"]
+        XCTAssertTrue(criteriaSubstanceUseRow.waitForExistence(timeout: 2))
+        XCTAssertTrue(criteriaSubstanceUseRow.label.contains("Open to all"))
+        criteriaSubstanceUseRow.tap()
+
+        XCTAssertTrue(app.navigationBars["Substance Use"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Vaping"].exists)
+        XCTAssertTrue(app.buttons["Smoking"].exists)
+        XCTAssertTrue(app.buttons["Marijuana"].exists)
+        XCTAssertTrue(app.buttons["Drinking"].exists)
+        XCTAssertTrue(app.buttons["Other"].exists)
+    }
+
+    @MainActor
+    func testGenderPreferenceOpensFromProfileTab() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.tabBars.buttons["Profile"].tap()
+        XCTAssertTrue(app.buttons["Criteria Gender Row"].waitForExistence(timeout: 2))
+        app.buttons["Criteria Gender Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Gender"].waitForExistence(timeout: 2))
         assertRootTabsHidden(in: app)
-        XCTAssertTrue(app.staticTexts["Match With"].exists)
-        XCTAssertTrue(app.staticTexts["No preference"].exists)
+        XCTAssertTrue(app.staticTexts["Gender"].exists)
+        XCTAssertTrue(app.buttons["Male"].exists)
+        XCTAssertTrue(app.buttons["Female"].exists)
+        XCTAssertTrue(app.buttons["Nonbinary"].exists)
 
-        app.navigationBars["Match With"].buttons.firstMatch.tap()
+        app.navigationBars["Gender"].buttons.firstMatch.tap()
 
-        XCTAssertTrue(app.buttons["Match With Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Criteria Gender Row"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.tabBars.buttons["Match"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.tabBars.buttons["Network"].exists)
+        XCTAssertTrue(app.tabBars.buttons["Profile"].exists)
         XCTAssertTrue(app.tabBars.buttons["Search"].exists)
     }
 
@@ -313,6 +405,7 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
+        app.tabBars.buttons["Profile"].tap()
         XCTAssertTrue(app.buttons["Age Range Row"].waitForExistence(timeout: 2))
         app.buttons["Age Range Row"].tap()
 
@@ -330,6 +423,7 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
+        app.tabBars.buttons["Profile"].tap()
         XCTAssertTrue(app.buttons["Match Policy Row"].waitForExistence(timeout: 2))
         app.buttons["Match Policy Row"].tap()
 
@@ -437,6 +531,7 @@ final class snsUITests: XCTestCase {
     private func assertRootTabsHidden(in app: XCUIApplication) {
         XCTAssertFalse(app.tabBars.buttons["Match"].waitForExistence(timeout: 1))
         XCTAssertFalse(app.tabBars.buttons["Network"].exists)
+        XCTAssertFalse(app.tabBars.buttons["Profile"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].exists)
     }
 }

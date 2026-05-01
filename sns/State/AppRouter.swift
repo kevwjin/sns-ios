@@ -7,6 +7,7 @@ final class AppRouter {
     var lastContentTab: RootTab = .match
     var matchPath: [RootDestination] = []
     var networkPath: [RootDestination] = []
+    var profilePath: [RootDestination] = []
     var searchPath: [RootDestination] = []
     var isRootSearchPresented = false
     var activeRootModal: RootModal?
@@ -30,6 +31,8 @@ final class AppRouter {
             matchPath.append(destination)
         case .network:
             networkPath.append(destination)
+        case .profile:
+            profilePath.append(destination)
         case .search:
             searchPath.append(destination)
         }
@@ -70,6 +73,7 @@ final class AppRouter {
 
 enum RootDestination: Hashable {
     case page(RootSearchPage)
+    case profileField(ProfileField)
     case contact(AppContact.ID)
     case myCard
     case matchMessages(String)
@@ -82,6 +86,7 @@ enum RootModal: Hashable {
 enum RootTab: String, CaseIterable, Identifiable {
     case match
     case network
+    case profile
     case search
 
     var id: Self { self }
@@ -90,6 +95,7 @@ enum RootTab: String, CaseIterable, Identifiable {
         switch self {
         case .match: "Match"
         case .network: "Network"
+        case .profile: "Profile"
         case .search: "Search"
         }
     }
@@ -98,6 +104,7 @@ enum RootTab: String, CaseIterable, Identifiable {
         switch self {
         case .match: "sparkles"
         case .network: "person.2.fill"
+        case .profile: "person.crop.circle"
         case .search: "magnifyingglass"
         }
     }
@@ -111,6 +118,8 @@ enum RootSearchPage: String, CaseIterable, Identifiable {
     case location
     case radius
     case matchWith
+    case sexuality
+    case substanceUse
     case ageRange
     case matchPolicy
     case profile
@@ -125,7 +134,9 @@ enum RootSearchPage: String, CaseIterable, Identifiable {
         case .logbook: "Logbook"
         case .location: "Location"
         case .radius: "Radius"
-        case .matchWith: "Match With"
+        case .matchWith: "Gender"
+        case .sexuality: "Sexuality"
+        case .substanceUse: "Substance Use"
         case .ageRange: "Age Range"
         case .matchPolicy: "Match Policy"
         case .profile: "Profile"
@@ -141,6 +152,8 @@ enum RootSearchPage: String, CaseIterable, Identifiable {
         case .location: "location.fill"
         case .radius: "scope"
         case .matchWith: "person.2.circle"
+        case .sexuality: "heart.circle"
+        case .substanceUse: "checklist"
         case .ageRange: "slider.horizontal.3"
         case .matchPolicy: "person.2.wave.2.fill"
         case .profile: "person.text.rectangle"
@@ -156,9 +169,11 @@ enum RootSearchPage: String, CaseIterable, Identifiable {
         case .location: ["city", "place", "area"]
         case .radius: ["distance", "range", "nearby", "miles"]
         case .matchWith: ["preferences", "criteria", "match", "gender"]
+        case .sexuality: ["preferences", "criteria", "match", "sexuality"]
+        case .substanceUse: ["preferences", "criteria", "match", "substance", "vaping", "smoking", "marijuana", "drinking"]
         case .ageRange: ["preferences", "criteria", "match", "age"]
         case .matchPolicy: ["preferences", "criteria", "match", "policy", "mutuals"]
-        case .profile: ["account", "me", "gender", "age"]
+        case .profile: ["account", "me", "gender", "age", "pronouns", "sexuality"]
         }
     }
 
@@ -167,5 +182,23 @@ enum RootSearchPage: String, CaseIterable, Identifiable {
         guard !normalizedQuery.isEmpty else { return false }
         return title.localizedCaseInsensitiveContains(normalizedQuery)
             || keywords.contains { $0.localizedCaseInsensitiveContains(normalizedQuery) }
+    }
+}
+
+enum ProfileField: String, Hashable {
+    case age
+    case gender
+    case pronouns
+    case sexuality
+    case substanceUse
+
+    var title: String {
+        switch self {
+        case .age: "Age"
+        case .gender: "Gender"
+        case .pronouns: "Pronouns"
+        case .sexuality: "Sexuality"
+        case .substanceUse: "Substance Use"
+        }
     }
 }
