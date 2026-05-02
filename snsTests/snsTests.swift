@@ -119,7 +119,7 @@ struct snsTests {
 
         #expect(state.preferredGenders == Set(GenderIdentity.allCases))
         #expect(state.preferredSexualities == Set(SexualityOption.allCases))
-        #expect(state.acceptedSubstanceUse == Set(SubstanceUseCategory.allCases))
+        #expect(SubstanceUseCategory.allCases.allSatisfy { state.acceptedSubstanceUse[$0] == .yes })
         #expect(state.preferredGendersSummary == "Open to all")
         #expect(state.preferredSexualitiesSummary == "Open to all")
         #expect(state.acceptedSubstanceUseSummary == "Open to all")
@@ -128,15 +128,15 @@ struct snsTests {
     @Test func appStateSummarizesPartialCriteriaSelections() {
         let state = AppState.mock()
 
-        state.substanceUse = [.drinking, .marijuana]
+        state.substanceUse = [.drinking: .yes, .marijuana: .sometimes]
         state.preferredGenders = [.female, .nonbinary]
         state.preferredSexualities = []
-        state.acceptedSubstanceUse = [.drinking]
+        state.acceptedSubstanceUse = [.drinking: .yes]
 
-        #expect(state.substanceUseSummary == "Marijuana, Drinking")
+        #expect(state.substanceUseSummary == "Marijuana: Sometimes, Drinking: Yes")
         #expect(state.preferredGendersSummary == "Female, Nonbinary")
         #expect(state.preferredSexualitiesSummary == "None selected")
-        #expect(state.acceptedSubstanceUseSummary == "Drinking")
+        #expect(state.acceptedSubstanceUseSummary == "Drinking: Yes")
     }
 
     @Test func matchCriteriaEditedSummaryUsesRelativeLabels() {
@@ -213,7 +213,7 @@ struct snsTests {
         expectRefresh { state.preferredAgeMax = 31 }
         expectRefresh { state.preferredGenders = [.female] }
         expectRefresh { state.preferredSexualities = [.bisexual] }
-        expectRefresh { state.acceptedSubstanceUse = [.drinking] }
+        expectRefresh { state.acceptedSubstanceUse = [.drinking: .yes] }
         expectRefresh { state.matchPolicy = .anyEligibleMatch }
     }
 
@@ -295,7 +295,7 @@ struct snsTests {
         state.preferredAgeMax = 31
         state.preferredGenders = [.female, .nonbinary]
         state.preferredSexualities = [.bisexual]
-        state.acceptedSubstanceUse = [.drinking]
+        state.acceptedSubstanceUse = [.drinking: .yes]
         state.matchPolicy = .anyEligibleMatchIfNoMutuals
         state.weeklyAvailability = [WeeklyAvailabilityDay(date: day)]
         state.addAvailabilityWindow(on: day, calendar: calendar)
@@ -312,7 +312,7 @@ struct snsTests {
         #expect(state.weeklyBatchEnrollment?.matchCriteria.preferredAgeMax == 31)
         #expect(state.weeklyBatchEnrollment?.matchCriteria.preferredGenders == Set([.female, .nonbinary]))
         #expect(state.weeklyBatchEnrollment?.matchCriteria.preferredSexualities == Set([.bisexual]))
-        #expect(state.weeklyBatchEnrollment?.matchCriteria.acceptedSubstanceUse == Set([.drinking]))
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.acceptedSubstanceUse == [.drinking: .yes])
         #expect(state.weeklyBatchEnrollment?.matchCriteria.matchPolicy == .anyEligibleMatchIfNoMutuals)
         #expect(state.displayedWeeklyAvailabilitySummary == "1 time window")
     }
@@ -328,16 +328,16 @@ struct snsTests {
 
         state.matchingLocation = "Mission"
         state.matchingRadiusMiles = 30
-        state.acceptedSubstanceUse = [.drinking]
+        state.acceptedSubstanceUse = [.drinking: .yes]
         state.matchPolicy = .anyEligibleMatch
         state.weeklyAvailability.removeAll()
 
         #expect(state.currentMatchCriteriaSnapshot.location == "Mission")
         #expect(state.currentMatchCriteriaSnapshot.radiusMiles == 30)
-        #expect(state.currentMatchCriteriaSnapshot.acceptedSubstanceUse == Set([.drinking]))
+        #expect(state.currentMatchCriteriaSnapshot.acceptedSubstanceUse == [.drinking: .yes])
         #expect(state.weeklyBatchEnrollment?.matchCriteria.location == "SoMa")
         #expect(state.weeklyBatchEnrollment?.matchCriteria.radiusMiles == 10)
-        #expect(state.weeklyBatchEnrollment?.matchCriteria.acceptedSubstanceUse == Set(SubstanceUseCategory.allCases))
+        #expect(SubstanceUseCategory.allCases.allSatisfy { state.weeklyBatchEnrollment?.matchCriteria.acceptedSubstanceUse[$0] == .yes })
         #expect(state.displayedWeeklyBatchCriteria == state.weeklyBatchEnrollment!.matchCriteria)
         #expect(state.weeklyAvailabilitySummary == "No availability")
         #expect(state.displayedWeeklyAvailabilitySummary == "1 time window")

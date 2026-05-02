@@ -60,10 +60,7 @@ struct ProfileTabView: View {
 
             Section("Substance Use") {
                 substanceUseRows(
-                    destination: .profileField(.substanceUse),
                     selection: appState.substanceUse,
-                    selectedValue: "Listed",
-                    unselectedValue: "Not listed",
                     accessibilityPrefix: "Account"
                 )
             }
@@ -95,17 +92,14 @@ struct ProfileTabView: View {
     }
 
     private func substanceUseRows(
-        destination: RootDestination,
-        selection: Set<SubstanceUseCategory>,
-        selectedValue: String,
-        unselectedValue: String,
+        selection: [SubstanceUseCategory: SubstanceUseAnswer],
         accessibilityPrefix: String
     ) -> some View {
         ForEach(Array(SubstanceUseCategory.allCases), id: \.self) { substance in
-            NavigationLink(value: destination) {
+            NavigationLink(value: RootDestination.profileSubstanceUse(substance)) {
                 preferenceValueRow(
                     title: substance.label,
-                    value: selection.contains(substance) ? selectedValue : unselectedValue,
+                    value: selection[substance, default: .preferNotToSay].label,
                     systemImage: substance.systemImage
                 )
             }
@@ -348,7 +342,7 @@ struct AccountProfileView: View {
     @Binding var gender: GenderIdentity
     @Binding var pronouns: PronounOption
     @Binding var sexuality: SexualityOption
-    @Binding var substanceUse: Set<SubstanceUseCategory>
+    @Binding var substanceUse: [SubstanceUseCategory: SubstanceUseAnswer]
 
     var body: some View {
         Form {
@@ -377,7 +371,14 @@ struct AccountProfileView: View {
             }
 
             Section("Substance Use") {
-                MultiSelectOptionsView(selection: $substanceUse)
+                ForEach(Array(SubstanceUseCategory.allCases), id: \.self) { substance in
+                    NavigationLink(value: RootDestination.profileSubstanceUse(substance)) {
+                        valueRow(
+                            title: substance.label,
+                            value: substanceUse[substance, default: .preferNotToSay].label
+                        )
+                    }
+                }
             }
         }
         .navigationTitle("Account")
@@ -458,19 +459,15 @@ struct AccountSingleSelectView<Option: ProfileCriteriaOption>: View {
 }
 
 struct AccountSubstanceUseView: View {
-    @Binding var substanceUse: Set<SubstanceUseCategory>
+    let category: SubstanceUseCategory
+    @Binding var selection: SubstanceUseAnswer
 
     var body: some View {
-        Form {
-            Section {
-                MultiSelectOptionsView(selection: $substanceUse)
-            } header: {
-                Text("Substance Use")
-            } footer: {
-                Text("Select any that apply to your own profile.")
-            }
-        }
-        .navigationTitle("Substance Use")
+        SubstanceUseAnswerView(
+            title: category.label,
+            footer: "Choose what to show on your own profile.",
+            selection: $selection
+        )
     }
 }
 
@@ -499,14 +496,46 @@ struct MatchSexualityPreferenceView: View {
 }
 
 struct MatchSubstanceUsePreferenceView: View {
-    @Binding var acceptedSubstanceUse: Set<SubstanceUseCategory>
+    let category: SubstanceUseCategory
+    @Binding var selection: SubstanceUseAnswer
 
     var body: some View {
-        MatchCriteriaMultiSelectView(
-            title: "Substance Use",
-            footer: "Select the substance-use categories you are open to in a match.",
-            selection: $acceptedSubstanceUse
+        SubstanceUseAnswerView(
+            title: category.label,
+            footer: "Choose the answer you are open to for this match criterion.",
+            selection: $selection
         )
+    }
+}
+
+struct MatchSubstanceUseListView: View {
+    let acceptedSubstanceUse: [SubstanceUseCategory: SubstanceUseAnswer]
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(Array(SubstanceUseCategory.allCases), id: \.self) { substance in
+                    NavigationLink(value: RootDestination.matchSubstanceUse(substance)) {
+                        HStack {
+                            Image(systemName: substance.systemImage)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 22)
+
+                            Text(substance.label)
+
+                            Spacer()
+
+                            Text(acceptedSubstanceUse[substance, default: .yes].label)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityIdentifier("Criteria \(substance.label) Substance Use Row")
+                }
+            } footer: {
+                Text("Choose the answer you are open to for each substance-use category.")
+            }
+        }
+        .navigationTitle("Substance Use")
     }
 }
 
@@ -625,5 +654,40 @@ struct MultiSelectOptionsView<Option: ProfileCriteriaOption>: View {
             updatedSelection.insert(option)
         }
         selection = updatedSelection
+    }
+}
+
+struct SubstanceUseAnswerView: View {
+    let title: String
+    let footer: String
+    @Binding var selection: SubstanceUseAnswer
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(Array(SubstanceUseAnswer.allCases), id: \.self) { option in
+                    Button {
+                        selection = option
+                    } label: {
+                        HStack {
+                            Image(systemName: selection == option ? "largecircle.fill.circle" : "circle")
+                                .foregroundStyle(selection == option ? Color.accentColor : Color.secondary)
+                                .accessibilityHidden(true)
+
+                            Text(option.label)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("\(title) \(option.label) Substance Use Option")
+                }
+            } footer: {
+                Text(footer)
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

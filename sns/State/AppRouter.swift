@@ -62,6 +62,8 @@ final class AppRouter {
 enum RootDestination: Hashable {
     case page(RootSearchPage)
     case profileField(ProfileField)
+    case profileSubstanceUse(SubstanceUseCategory)
+    case matchSubstanceUse(SubstanceUseCategory)
     case contact(AppContact.ID)
     case myCard
     case matchCriteria
@@ -168,7 +170,6 @@ enum ProfileField: String, Hashable {
     case gender
     case pronouns
     case sexuality
-    case substanceUse
 
     var title: String {
         switch self {
@@ -176,7 +177,6 @@ enum ProfileField: String, Hashable {
         case .gender: "Gender"
         case .pronouns: "Pronouns"
         case .sexuality: "Sexuality"
-        case .substanceUse: "Substance Use"
         }
     }
 }

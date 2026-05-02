@@ -82,6 +82,22 @@ enum SubstanceUseCategory: String, ProfileCriteriaOption {
     }
 }
 
+enum SubstanceUseAnswer: String, ProfileCriteriaOption {
+    case yes
+    case sometimes
+    case no
+    case preferNotToSay
+
+    var label: String {
+        switch self {
+        case .yes: "Yes"
+        case .sometimes: "Sometimes"
+        case .no: "No"
+        case .preferNotToSay: "Prefer not to say"
+        }
+    }
+}
+
 struct AvailabilityWindow: Identifiable, Hashable {
     let id: UUID
     var startTime: Date
@@ -122,7 +138,7 @@ struct MatchCriteriaSnapshot: Hashable {
     var preferredAgeMax: Int
     var preferredGenders: Set<GenderIdentity>
     var preferredSexualities: Set<SexualityOption>
-    var acceptedSubstanceUse: Set<SubstanceUseCategory>
+    var acceptedSubstanceUse: [SubstanceUseCategory: SubstanceUseAnswer]
     var matchPolicy: MatchPolicy
 
     var locationSummary: String {
@@ -146,7 +162,7 @@ struct MatchCriteriaSnapshot: Hashable {
     }
 
     var acceptedSubstanceUseSummary: String {
-        Self.summary(for: acceptedSubstanceUse, emptyLabel: "None selected", allLabel: "Open to all")
+        Self.substanceUseSummary(for: acceptedSubstanceUse, emptyLabel: "None selected", allLabel: "Open to all")
     }
 
     private static func summary<Option: ProfileCriteriaOption>(
@@ -166,6 +182,24 @@ struct MatchCriteriaSnapshot: Hashable {
         return allOptions
             .filter(values.contains)
             .map(\.label)
+            .joined(separator: ", ")
+    }
+
+    private static func substanceUseSummary(
+        for values: [SubstanceUseCategory: SubstanceUseAnswer],
+        emptyLabel: String,
+        allLabel: String
+    ) -> String {
+        let allOptions = Array(SubstanceUseCategory.allCases)
+        let answeredOptions = allOptions.filter { values[$0] != nil }
+        guard !answeredOptions.isEmpty else { return emptyLabel }
+
+        if allOptions.allSatisfy({ values[$0] == .yes }) {
+            return allLabel
+        }
+
+        return answeredOptions
+            .map { "\($0.label): \(values[$0, default: .preferNotToSay].label)" }
             .joined(separator: ", ")
     }
 }
@@ -369,14 +403,14 @@ final class AppState {
     var gender: GenderIdentity
     var pronouns: PronounOption
     var sexuality: SexualityOption
-    var substanceUse: Set<SubstanceUseCategory>
+    var substanceUse: [SubstanceUseCategory: SubstanceUseAnswer]
     var preferredGenders: Set<GenderIdentity> {
         didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: preferredGenders) }
     }
     var preferredSexualities: Set<SexualityOption> {
         didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: preferredSexualities) }
     }
-    var acceptedSubstanceUse: Set<SubstanceUseCategory> {
+    var acceptedSubstanceUse: [SubstanceUseCategory: SubstanceUseAnswer] {
         didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: acceptedSubstanceUse) }
     }
     var preferredAgeMin: Int {
@@ -413,10 +447,12 @@ final class AppState {
         gender: GenderIdentity = .female,
         pronouns: PronounOption = .sheHer,
         sexuality: SexualityOption = .notListed,
-        substanceUse: Set<SubstanceUseCategory> = [],
+        substanceUse: [SubstanceUseCategory: SubstanceUseAnswer] = [:],
         preferredGenders: Set<GenderIdentity> = Set(GenderIdentity.allCases),
         preferredSexualities: Set<SexualityOption> = Set(SexualityOption.allCases),
-        acceptedSubstanceUse: Set<SubstanceUseCategory> = Set(SubstanceUseCategory.allCases),
+        acceptedSubstanceUse: [SubstanceUseCategory: SubstanceUseAnswer] = Dictionary(
+            uniqueKeysWithValues: SubstanceUseCategory.allCases.map { ($0, .yes) }
+        ),
         preferredAgeMin: Int = 21,
         preferredAgeMax: Int = 27,
         matchPolicy: MatchPolicy = .mutualsOnly,
@@ -679,7 +715,7 @@ extension AppState {
     }
 
     var substanceUseSummary: String {
-        Self.summary(
+        Self.substanceUseSummary(
             for: substanceUse,
             emptyLabel: "None listed",
             allLabel: "All listed"
@@ -703,11 +739,19 @@ extension AppState {
     }
 
     var acceptedSubstanceUseSummary: String {
-        Self.summary(
+        Self.substanceUseSummary(
             for: acceptedSubstanceUse,
             emptyLabel: "None selected",
             allLabel: "Open to all"
         )
+    }
+
+    func substanceUseAnswer(for category: SubstanceUseCategory) -> SubstanceUseAnswer {
+        substanceUse[category, default: .preferNotToSay]
+    }
+
+    func acceptedSubstanceUseAnswer(for category: SubstanceUseCategory) -> SubstanceUseAnswer {
+        acceptedSubstanceUse[category, default: .yes]
     }
 
     private static func summary<Option: ProfileCriteriaOption>(
@@ -727,6 +771,24 @@ extension AppState {
         return allOptions
             .filter(values.contains)
             .map(\.label)
+            .joined(separator: ", ")
+    }
+
+    private static func substanceUseSummary(
+        for values: [SubstanceUseCategory: SubstanceUseAnswer],
+        emptyLabel: String,
+        allLabel: String
+    ) -> String {
+        let allOptions = Array(SubstanceUseCategory.allCases)
+        let answeredOptions = allOptions.filter { values[$0] != nil }
+        guard !answeredOptions.isEmpty else { return emptyLabel }
+
+        if allOptions.allSatisfy({ values[$0] == .yes }) {
+            return allLabel
+        }
+
+        return answeredOptions
+            .map { "\($0.label): \(values[$0, default: .preferNotToSay].label)" }
             .joined(separator: ", ")
     }
 }

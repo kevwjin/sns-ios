@@ -263,6 +263,16 @@ struct RootView: View {
             rootPageDestination(for: page)
         case .profileField(let field):
             profileFieldDestination(for: field)
+        case .profileSubstanceUse(let category):
+            AccountSubstanceUseView(
+                category: category,
+                selection: substanceUseBinding(for: category)
+            )
+        case .matchSubstanceUse(let category):
+            MatchSubstanceUsePreferenceView(
+                category: category,
+                selection: acceptedSubstanceUseBinding(for: category)
+            )
         case .contact(let id):
             if let contact = contactBinding(for: id) {
                 ContactDetailView(contact: contact, groups: $appState.groups)
@@ -309,7 +319,7 @@ struct RootView: View {
         case .sexuality:
             MatchSexualityPreferenceView(preferredSexualities: $appState.preferredSexualities)
         case .substanceUse:
-            MatchSubstanceUsePreferenceView(acceptedSubstanceUse: $appState.acceptedSubstanceUse)
+            MatchSubstanceUseListView(acceptedSubstanceUse: appState.acceptedSubstanceUse)
         case .ageRange:
             AgeRangePreferenceView(
                 preferredAgeMin: $appState.preferredAgeMin,
@@ -339,14 +349,34 @@ struct RootView: View {
             AccountSingleSelectView(title: field.title, selection: $appState.pronouns)
         case .sexuality:
             AccountSingleSelectView(title: field.title, selection: $appState.sexuality)
-        case .substanceUse:
-            AccountSubstanceUseView(substanceUse: $appState.substanceUse)
         }
     }
 
     private func contactBinding(for id: AppContact.ID) -> Binding<AppContact>? {
         guard let index = appState.contacts.firstIndex(where: { $0.id == id }) else { return nil }
         return $appState.contacts[index]
+    }
+
+    private func substanceUseBinding(for category: SubstanceUseCategory) -> Binding<SubstanceUseAnswer> {
+        Binding(
+            get: {
+                appState.substanceUseAnswer(for: category)
+            },
+            set: { newValue in
+                appState.substanceUse[category] = newValue
+            }
+        )
+    }
+
+    private func acceptedSubstanceUseBinding(for category: SubstanceUseCategory) -> Binding<SubstanceUseAnswer> {
+        Binding(
+            get: {
+                appState.acceptedSubstanceUseAnswer(for: category)
+            },
+            set: { newValue in
+                appState.acceptedSubstanceUse[category] = newValue
+            }
+        )
     }
 }
 
@@ -406,8 +436,6 @@ private struct MatchCriteriaView: View {
             Section("Substance Use") {
                 substanceUseRows(
                     selection: appState.acceptedSubstanceUse,
-                    selectedValue: "Open",
-                    unselectedValue: "Not open",
                     accessibilityPrefix: "Criteria"
                 )
             }
@@ -434,16 +462,14 @@ private struct MatchCriteriaView: View {
     }
 
     private func substanceUseRows(
-        selection: Set<SubstanceUseCategory>,
-        selectedValue: String,
-        unselectedValue: String,
+        selection: [SubstanceUseCategory: SubstanceUseAnswer],
         accessibilityPrefix: String
     ) -> some View {
         ForEach(Array(SubstanceUseCategory.allCases), id: \.self) { substance in
-            NavigationLink(value: RootDestination.page(.substanceUse)) {
+            NavigationLink(value: RootDestination.matchSubstanceUse(substance)) {
                 valueRow(
                     title: substance.label,
-                    value: selection.contains(substance) ? selectedValue : unselectedValue,
+                    value: selection[substance, default: .yes].label,
                     systemImage: substance.systemImage
                 )
             }

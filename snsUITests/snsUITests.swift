@@ -575,7 +575,7 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Matching"].exists)
         scrollToElement(app.buttons["Match Policy Row"], in: app)
         XCTAssertTrue(app.buttons["Match Policy Row"].exists)
-        XCTAssertTrue(app.buttons["Criteria Other Substance Use Row"].label.contains("Open"))
+        XCTAssertTrue(app.buttons["Criteria Other Substance Use Row"].label.contains("Yes"))
     }
 
     @MainActor
@@ -594,12 +594,16 @@ final class snsUITests: XCTestCase {
 
         scrollToElement(app.buttons["Account Drinking Substance Use Row"], in: app)
         app.buttons["Account Drinking Substance Use Row"].tap()
-        XCTAssertTrue(app.navigationBars["Substance Use"].waitForExistence(timeout: 2))
-        app.buttons["Drinking"].tap()
-        app.navigationBars["Substance Use"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Drinking"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Yes"].exists)
+        XCTAssertTrue(app.buttons["Sometimes"].exists)
+        XCTAssertTrue(app.buttons["No"].exists)
+        XCTAssertTrue(app.buttons["Prefer not to say"].exists)
+        app.buttons["Sometimes"].tap()
+        app.navigationBars["Drinking"].buttons.firstMatch.tap()
 
         XCTAssertTrue(app.buttons["Account Drinking Substance Use Row"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Account Drinking Substance Use Row"].label.contains("Listed"))
+        XCTAssertTrue(app.buttons["Account Drinking Substance Use Row"].label.contains("Sometimes"))
     }
 
     @MainActor
@@ -611,15 +615,14 @@ final class snsUITests: XCTestCase {
         let criteriaSubstanceUseRow = app.buttons["Criteria Drinking Substance Use Row"]
         scrollToElement(criteriaSubstanceUseRow, in: app)
         XCTAssertTrue(criteriaSubstanceUseRow.waitForExistence(timeout: 2))
-        XCTAssertTrue(criteriaSubstanceUseRow.label.contains("Open"))
+        XCTAssertTrue(criteriaSubstanceUseRow.label.contains("Yes"))
         criteriaSubstanceUseRow.tap()
 
-        XCTAssertTrue(app.navigationBars["Substance Use"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Vaping"].exists)
-        XCTAssertTrue(app.buttons["Smoking"].exists)
-        XCTAssertTrue(app.buttons["Marijuana"].exists)
-        XCTAssertTrue(app.buttons["Drinking"].exists)
-        XCTAssertTrue(app.buttons["Other"].exists)
+        XCTAssertTrue(app.navigationBars["Drinking"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Yes"].exists)
+        XCTAssertTrue(app.buttons["Sometimes"].exists)
+        XCTAssertTrue(app.buttons["No"].exists)
+        XCTAssertTrue(app.buttons["Prefer not to say"].exists)
     }
 
     @MainActor
