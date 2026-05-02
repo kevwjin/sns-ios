@@ -511,9 +511,8 @@ final class snsUITests: XCTestCase {
     }
 
     @MainActor
-    func testProfileMyCardEditsNameAndPreferredContact() throws {
+    func testProfileMyCardEditsNameAndNotes() throws {
         let app = XCUIApplication()
-        app.launchArguments.append("-snsUITestDisablePhotoPicker")
         app.launch()
 
         app.tabBars.buttons["Profile"].tap()
@@ -524,18 +523,23 @@ final class snsUITests: XCTestCase {
         assertRootTabsHidden(in: app)
         XCTAssertFalse(app.switches["Use for matching"].exists)
         XCTAssertFalse(app.staticTexts["Groups"].exists)
-        XCTAssertTrue(app.staticTexts["Email"].exists)
+        XCTAssertFalse(app.otherElements["My Card Avatar"].exists)
+        XCTAssertTrue(app.staticTexts["Notes"].exists)
+        XCTAssertFalse(app.staticTexts["Preferred Contact"].exists)
+        XCTAssertFalse(app.staticTexts["Email"].exists)
 
         app.navigationBars["My Card"].buttons["Edit"].tap()
+        XCTAssertFalse(app.buttons["Choose My Card Photo"].exists)
+        XCTAssertFalse(app.buttons["Remove Photo"].exists)
         clearAndEnterText("Kevin", in: app.textFields["My Card First Name Field"])
         clearAndEnterText("Jin", in: app.textFields["My Card Last Name Field"])
-        app.buttons["SNS"].tap()
-        clearAndEnterText("@kevin", in: app.textFields["My Card Preferred Contact Field"])
+        clearAndEnterText("Met at the design meetup.", in: app.textViews["My Card Notes Field"])
         app.navigationBars["My Card"].buttons["Done"].tap()
 
         XCTAssertTrue(app.staticTexts["Kevin"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Jin"].exists)
-        XCTAssertTrue(app.staticTexts["@kevin"].exists)
+        XCTAssertTrue(app.staticTexts["Met at the design meetup."].exists)
+        XCTAssertFalse(app.staticTexts["Preferred Contact"].exists)
 
         app.navigationBars["My Card"].buttons.firstMatch.tap()
         XCTAssertTrue(app.buttons["My Card Row"].waitForExistence(timeout: 2))

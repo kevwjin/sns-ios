@@ -1,4 +1,3 @@
-import PhotosUI
 import SwiftUI
 import UIKit
 
@@ -113,36 +112,9 @@ struct ProfileTabView: View {
 struct MyCardDetailView: View {
     @Binding var contact: AppContact
     @State private var isEditing = false
-    @State private var isPhotoPickerPresented = false
-    @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
         Form {
-            Section {
-                VStack(spacing: 12) {
-                    MyCardAvatarView(contact: contact, size: 96)
-                        .accessibilityIdentifier("My Card Avatar")
-
-                    if isEditing && !isPhotoPickerDisabled {
-                        Button {
-                            isPhotoPickerPresented = true
-                        } label: {
-                            Label("Choose Photo", systemImage: "photo")
-                        }
-                        .accessibilityIdentifier("Choose My Card Photo")
-
-                        if contact.photoData != nil {
-                            Button("Remove Photo", role: .destructive) {
-                                contact.photoData = nil
-                                selectedPhotoItem = nil
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-            }
-
             if isEditing {
                 Section("Name") {
                     TextField("First Name", text: $contact.firstName)
@@ -153,19 +125,10 @@ struct MyCardDetailView: View {
                         .accessibilityIdentifier("My Card Last Name Field")
                 }
 
-                Section("Preferred Contact") {
-                    Picker("Method", selection: $contact.preferredContactMethod) {
-                        ForEach(PreferredContactMethod.allCases) { method in
-                            Text(method.label).tag(method)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
-                    TextField(preferredContactPlaceholder, text: preferredContactBinding)
-                        .keyboardType(preferredContactKeyboardType)
-                        .textInputAutocapitalization(preferredContactAutocapitalization)
-                        .autocorrectionDisabled(preferredContactAutocorrectionDisabled)
-                        .accessibilityIdentifier("My Card Preferred Contact Field")
+                Section("Notes") {
+                    TextEditor(text: $contact.notes)
+                        .frame(minHeight: 120)
+                        .accessibilityIdentifier("My Card Notes Field")
                 }
             } else {
                 Section("Name") {
@@ -173,9 +136,8 @@ struct MyCardDetailView: View {
                     detailRow(title: "Last Name", value: contact.lastName)
                 }
 
-                Section("Preferred Contact") {
-                    detailRow(title: "Method", value: contact.preferredContactMethod.label)
-                    detailRow(title: contact.preferredContactMethod.label, value: contact.preferredContactSummary)
+                Section("Notes") {
+                    Text(contact.notes)
                 }
             }
         }
@@ -188,80 +150,6 @@ struct MyCardDetailView: View {
                 }
             }
         }
-        .onChange(of: selectedPhotoItem) { _, newItem in
-            Task {
-                await loadPhoto(from: newItem)
-            }
-        }
-        .modifier(MyCardPhotoPickerModifier(
-            isDisabled: isPhotoPickerDisabled,
-            isPresented: $isPhotoPickerPresented,
-            selection: $selectedPhotoItem
-        ))
-    }
-
-    private var preferredContactPlaceholder: String {
-        switch contact.preferredContactMethod {
-        case .email:
-            "Email"
-        case .phone:
-            "Phone"
-        case .sns:
-            "SNS handle"
-        case .other:
-            "Contact details"
-        }
-    }
-
-    private var preferredContactKeyboardType: UIKeyboardType {
-        switch contact.preferredContactMethod {
-        case .email:
-            .emailAddress
-        case .phone:
-            .phonePad
-        case .sns, .other:
-            .default
-        }
-    }
-
-    private var preferredContactAutocapitalization: TextInputAutocapitalization {
-        switch contact.preferredContactMethod {
-        case .email, .sns:
-            .never
-        case .phone, .other:
-            .sentences
-        }
-    }
-
-    private var preferredContactAutocorrectionDisabled: Bool {
-        switch contact.preferredContactMethod {
-        case .email, .phone, .sns:
-            true
-        case .other:
-            false
-        }
-    }
-
-    private var preferredContactBinding: Binding<String> {
-        Binding(
-            get: {
-                contact.preferredContactValue
-            },
-            set: { newValue in
-                switch contact.preferredContactMethod {
-                case .email:
-                    contact.email = newValue
-                case .phone:
-                    contact.phone = newValue
-                case .sns, .other:
-                    contact.preferredContactDetail = newValue
-                }
-            }
-        )
-    }
-
-    private var isPhotoPickerDisabled: Bool {
-        ProcessInfo.processInfo.arguments.contains("-snsUITestDisablePhotoPicker")
     }
 
     @ViewBuilder
@@ -274,28 +162,6 @@ struct MyCardDetailView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.trailing)
             }
-        }
-    }
-
-    private func loadPhoto(from item: PhotosPickerItem?) async {
-        guard let item else { return }
-        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
-        await MainActor.run {
-            contact.photoData = data
-        }
-    }
-}
-
-private struct MyCardPhotoPickerModifier: ViewModifier {
-    let isDisabled: Bool
-    @Binding var isPresented: Bool
-    @Binding var selection: PhotosPickerItem?
-
-    func body(content: Content) -> some View {
-        if isDisabled {
-            content
-        } else {
-            content.photosPicker(isPresented: $isPresented, selection: $selection, matching: .images)
         }
     }
 }
