@@ -22,13 +22,12 @@ struct AnonymousMatchProfile: Hashable {
 final class HomeViewModel {
     var isEnrolledInBatch = false
     var hasMatchThisWeek = false
-    var showBatchInfoSheet = false
+    var showBatchInfoPopup = false
     var showEnrollConfirmation = false
     var showMatchInfoSheet = false
     var sliderResetTrigger = 0
     var secondsUntilMatchRelease = 5
 
-    let batchEndsAtText = "Sunday at 11:59 PM"
     let matchProfile = AnonymousMatchProfile.mock
 
     private var matchTimerTask: Task<Void, Never>?

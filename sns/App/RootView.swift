@@ -19,8 +19,10 @@ struct RootView: View {
                     .navigationTitle("")
                     .navigationBarTitleDisplayMode(.inline)
                     .listStyle(.insetGrouped)
-                    .sheet(isPresented: $homeViewModel.showBatchInfoSheet) {
-                        BatchInfoSheet(batchEndsAtText: homeViewModel.batchEndsAtText)
+                    .alert("Batch Info", isPresented: $homeViewModel.showBatchInfoPopup) {
+                        Button("OK", role: .cancel) {}
+                    } message: {
+                        Text("Sliding to enroll locks availability, criteria, and referral network for this week. Edits afterward apply next week. Each week's batch closes Sunday @ 11:59 PM local time.")
                     }
                     .onDisappear {
                         homeViewModel.cancelMatchSimulation()
@@ -92,20 +94,15 @@ struct RootView: View {
                 enrollInWeeklyBatch()
             }
         } header: {
-            HStack {
+            HStack(spacing: 6) {
                 Text("This Week")
-                Spacer()
                 Button {
-                    homeViewModel.showBatchInfoSheet = true
+                    homeViewModel.showBatchInfoPopup = true
                 } label: {
                     Image(systemName: "info.circle")
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("Batch Info")
-            }
-        } footer: {
-            if !homeViewModel.hasMatchThisWeek {
-                Text("Sliding to enroll locks availability, criteria, and referral network for this week. Edits afterward apply next week.")
             }
         }
 
@@ -134,6 +131,7 @@ struct RootView: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            .frame(minHeight: 132)
             .padding(.vertical, 20)
             .accessibilityIdentifier("No Match Empty State")
         }
@@ -141,7 +139,7 @@ struct RootView: View {
 
     private func anonymousMatchProfile(profile: AnonymousMatchProfile) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .center, spacing: 14) {
                 matchAvatar
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -152,30 +150,29 @@ struct RootView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(18)
-            .background(.background, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .accessibilityIdentifier("Anonymous Match Summary Card")
 
-            Text(profile.bio)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("Anonymous Match Bio")
-
-            HStack(spacing: 8) {
-                ForEach(profile.interests, id: \.self) { interest in
-                    Text(interest)
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
-                        .background(Color.secondary.opacity(0.12), in: Capsule())
-                }
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Hayes Cafe Mock Spot", systemImage: "mappin.and.ellipse")
+                Label("Thursday, 3:00-3:30 PM", systemImage: "clock")
             }
-            .accessibilityIdentifier("Anonymous Match Interests")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .symbolRenderingMode(.hierarchical)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.08))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.accentColor.opacity(0.12), lineWidth: 1)
+            }
         }
-        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 18, trailing: 20))
-        .listRowBackground(Color.clear)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: 132)
+        .padding(10)
         .accessibilityIdentifier("Anonymous Match Profile")
     }
 
@@ -196,14 +193,7 @@ struct RootView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 22)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Availability")
-                if appState.hasCompleteWeeklyAvailability || isEnrolledInBatch {
-                    Text(appState.displayedWeeklyAvailabilitySummary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            Text("Availability")
 
             Spacer()
 
@@ -1244,37 +1234,6 @@ private struct AvailabilityWindowBlock<MoveGesture: Gesture, ResizeStartGesture:
     }
 }
 
-private struct BatchInfoSheet: View {
-    let batchEndsAtText: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Batch Info")
-                .font(.headline)
-
-            Text("Each week's batch closes \(batchEndsAtText).")
-                .font(.subheadline)
-
-            Text("When the batch ends, your match is released automatically if you are enrolled.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Text("Who you match with is based on your match criteria.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Text("For this MVP mock, matched users are assigned either a cafe or walk activity at a vetted San Francisco spot.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .presentationDetents([.fraction(0.36)])
-        .presentationDragIndicator(.visible)
-    }
-}
 
 #Preview {
     RootView()

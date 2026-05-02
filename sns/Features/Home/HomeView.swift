@@ -8,19 +8,8 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 18) {
-                HStack(spacing: 8) {
-                    Text("Weekly Batch")
-                        .font(.headline)
-
-                    Button {
-                        viewModel.showBatchInfoSheet = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .foregroundStyle(.gray)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("Batch Info")
-                }
+                Text("Weekly Batch")
+                    .font(.headline)
 
                 SlideToEnrollControl(
                     isEnrolledInBatch: viewModel.isEnrolledInBatch,
@@ -115,33 +104,6 @@ struct HomeView: View {
                 Spacer()
             }
             .padding()
-            .sheet(isPresented: $viewModel.showBatchInfoSheet) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Batch Info")
-                        .font(.headline)
-
-                    Text("Each week's batch closes \(viewModel.batchEndsAtText).")
-                        .font(.subheadline)
-
-                    Text("When the batch ends, your match is released automatically if you are enrolled.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text("Who you match with is based on your match criteria.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text("For this MVP mock, matched users are assigned either a cafe or walk activity at a vetted San Francisco spot.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .presentationDetents([.fraction(0.36)])
-                .presentationDragIndicator(.visible)
-            }
             .sheet(isPresented: $viewModel.showMatchInfoSheet) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Match Messaging Info")

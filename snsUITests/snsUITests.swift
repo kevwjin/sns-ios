@@ -74,10 +74,13 @@ final class snsUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["This week's match"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["26 · they/them · Hayes Valley"].exists)
-        XCTAssertTrue(app.staticTexts["Enjoys low-key coffee, neighborhood walks, and finding quiet places to talk."].exists)
-        XCTAssertTrue(app.staticTexts["Coffee"].exists)
+        XCTAssertTrue(app.staticTexts["Hayes Cafe Mock Spot"].exists)
+        XCTAssertTrue(app.staticTexts["Thursday, 3:00-3:30 PM"].exists)
+        XCTAssertFalse(app.staticTexts["Enjoys low-key coffee, neighborhood walks, and finding quiet places to talk."].exists)
+        XCTAssertFalse(app.staticTexts["Coffee"].exists)
         XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].exists)
         XCTAssertTrue(app.staticTexts["Not set"].exists)
+        XCTAssertTrue(app.buttons["Batch Info"].exists)
         XCTAssertFalse(app.staticTexts["Alex Rivera"].exists)
         XCTAssertFalse(app.staticTexts["Current Match"].exists)
         XCTAssertFalse(app.buttons["Current Match"].exists)
@@ -274,12 +277,12 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["Active Availability Window"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.otherElements["Weekly Batch Enrollment Slider"].exists)
 
-        XCTAssertTrue(app.staticTexts["1 time window"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["1 time window"].exists)
         XCTAssertFalse(app.staticTexts["Will lock for this week"].exists)
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Slide to Enroll"].exists)
-        XCTAssertTrue(app.staticTexts["Sliding to enroll locks availability, criteria, and referral network for this week. Edits afterward apply next week."].exists)
+        XCTAssertTrue(app.buttons["Batch Info"].exists)
     }
 
     @MainActor
@@ -434,15 +437,20 @@ final class snsUITests: XCTestCase {
     }
 
     @MainActor
-    func testBatchInfoExplainsMockActivityAssignment() throws {
+    func testBatchCloseInfoAppearsInThisWeekPopup() throws {
         let app = XCUIApplication()
         app.launch()
 
+        let batchInfoText = "Sliding to enroll locks availability, criteria, and referral network for this week. Edits afterward apply next week. Each week's batch closes Sunday @ 11:59 PM local time."
+        let batchInfoTextPredicate = NSPredicate(format: "label == %@", batchInfoText)
+        let batchInfoTextElement = app.staticTexts.matching(batchInfoTextPredicate).firstMatch
         XCTAssertTrue(app.buttons["Batch Info"].waitForExistence(timeout: 2))
+        XCTAssertFalse(batchInfoTextElement.exists)
+
         app.buttons["Batch Info"].tap()
 
-        XCTAssertTrue(app.staticTexts["Batch Info"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["For this MVP mock, matched users are assigned either a cafe or walk activity at a vetted San Francisco spot."].exists)
+        XCTAssertTrue(app.alerts["Batch Info"].waitForExistence(timeout: 2))
+        XCTAssertTrue(batchInfoTextElement.exists)
     }
 
     @MainActor
