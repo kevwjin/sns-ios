@@ -768,6 +768,13 @@ private struct WeeklyAvailabilityGrid: View {
                 .accessibilityIdentifier("Availability Day Header \(weekdayName(for: date))")
             }
         }
+        .background(Color(.systemGroupedBackground))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(.separator).opacity(0.35))
+                .frame(height: 1)
+                .shadow(color: Color.black.opacity(0.16), radius: 3, x: 0, y: 2)
+        }
     }
 
     private func gridLines(totalWidth: CGFloat, dayWidth: CGFloat) -> some View {
