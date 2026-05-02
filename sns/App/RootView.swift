@@ -354,7 +354,7 @@ private struct MatchCriteriaView: View {
 
             Section("Demographics") {
                 NavigationLink(value: RootDestination.page(.ageRange)) {
-                    valueRow(title: "Age Range", value: "\(appState.preferredAgeMin)-\(appState.preferredAgeMax)", systemImage: "birthday.cake.fill")
+                    valueRow(title: "Age Range", value: "\(appState.preferredAgeMin)-\(appState.preferredAgeMax)", systemImage: "calendar")
                 }
                 .accessibilityIdentifier("Age Range Row")
 

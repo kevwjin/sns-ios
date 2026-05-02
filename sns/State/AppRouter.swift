@@ -134,7 +134,7 @@ enum RootSearchPage: String, CaseIterable, Identifiable {
         case .matchWith: "person.fill"
         case .sexuality: "heart.circle"
         case .substanceUse: "leaf"
-        case .ageRange: "birthday.cake.fill"
+        case .ageRange: "calendar"
         case .matchPolicy: "checkmark.shield.fill"
         case .profile: "person.text.rectangle"
         }
