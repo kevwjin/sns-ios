@@ -34,6 +34,8 @@ struct ProfileTabView: View {
                     .padding(.vertical, 6)
                 }
                 .accessibilityIdentifier("My Card Row")
+            } footer: {
+                Text("Shared when matched.")
             }
 
             Section("Account") {

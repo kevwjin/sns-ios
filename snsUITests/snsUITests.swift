@@ -491,6 +491,7 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["My Card Row"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["My Name"].exists)
         XCTAssertTrue(app.staticTexts["My Card"].exists)
+        XCTAssertTrue(app.staticTexts["Shared when matched."].exists)
         XCTAssertTrue(app.staticTexts["Identity"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Substance Use"].exists)
         XCTAssertTrue(app.buttons["Account Age Row"].exists)
