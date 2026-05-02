@@ -11,7 +11,11 @@ struct MatchingRadiusView: View {
                     Text("Within \(radiusMiles) mi")
                         .font(.title2.weight(.semibold))
 
-                    SingleValueSlider(value: $radiusMiles, bounds: 1...50)
+                    SingleValueSlider(
+                        value: $radiusMiles,
+                        bounds: 1...50,
+                        accessibilityLabel: "Radius Slider"
+                    )
                         .frame(height: 36)
                         .accessibilityIdentifier("Radius Slider")
 

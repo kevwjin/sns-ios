@@ -353,8 +353,8 @@ struct AccountProfileView: View {
     var body: some View {
         Form {
             Section("Account") {
-                Stepper(value: $age, in: 18...99) {
-                    valueRow(title: "Age", value: "\(age)")
+                Stepper(value: $age, in: AgeDisplay.bounds) {
+                    valueRow(title: "Age", value: AgeDisplay.label(for: age))
                 }
 
                 Picker("Gender", selection: $gender) {
@@ -398,15 +398,28 @@ struct AccountAgeView: View {
 
     var body: some View {
         Form {
-            Section("Age") {
-                Stepper(value: $age, in: 18...99) {
+            Section {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(AgeDisplay.label(for: age))
+                        .font(.title2.weight(.semibold))
+
+                    SingleValueSlider(
+                        value: $age,
+                        bounds: AgeDisplay.bounds,
+                        accessibilityLabel: "Age Slider"
+                    )
+                    .frame(height: 36)
+                    .accessibilityIdentifier("Age Slider")
+
                     HStack {
-                        Text("Age")
+                        Text("\(AgeDisplay.bounds.lowerBound)")
                         Spacer()
-                        Text("\(age)")
-                            .foregroundStyle(.secondary)
+                        Text("\(AgeDisplay.bounds.upperBound)+")
                     }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
+                .padding(.vertical, 6)
             }
         }
         .navigationTitle("Age")
@@ -505,21 +518,21 @@ struct AgeRangePreferenceView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("\(preferredAgeMin)-\(preferredAgeMax)")
+                    Text(AgeDisplay.rangeLabel(min: preferredAgeMin, max: preferredAgeMax))
                         .font(.title2.weight(.semibold))
 
                     AgeRangeSlider(
                         minValue: $preferredAgeMin,
                         maxValue: $preferredAgeMax,
-                        bounds: 18...99
+                        bounds: AgeDisplay.bounds
                     )
                     .frame(height: 36)
                     .accessibilityIdentifier("Age Range Slider")
 
                     HStack {
-                        Text("18")
+                        Text("\(AgeDisplay.bounds.lowerBound)")
                         Spacer()
-                        Text("99")
+                        Text("\(AgeDisplay.bounds.upperBound)+")
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)

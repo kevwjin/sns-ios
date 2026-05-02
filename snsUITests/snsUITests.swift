@@ -661,7 +661,7 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Age Range"].exists)
         XCTAssertTrue(app.staticTexts["21-27"].exists)
         XCTAssertTrue(app.staticTexts["18"].exists)
-        XCTAssertTrue(app.staticTexts["99"].exists)
+        XCTAssertTrue(app.staticTexts["85+"].exists)
         XCTAssertTrue(app.otherElements["Age Range Slider"].exists)
     }
 

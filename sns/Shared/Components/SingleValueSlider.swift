@@ -4,6 +4,17 @@ struct SingleValueSlider: View {
     @Binding var value: Int
 
     let bounds: ClosedRange<Int>
+    let accessibilityLabel: String
+
+    init(
+        value: Binding<Int>,
+        bounds: ClosedRange<Int>,
+        accessibilityLabel: String = "Slider"
+    ) {
+        self._value = value
+        self.bounds = bounds
+        self.accessibilityLabel = accessibilityLabel
+    }
 
     private let thumbSize: CGFloat = 26
     private let trackHeight: CGFloat = 6
@@ -39,7 +50,7 @@ struct SingleValueSlider: View {
             .frame(maxHeight: .infinity)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Radius Slider")
+        .accessibilityLabel(accessibilityLabel)
         .accessibilityValue("\(value)")
         .accessibilityAdjustableAction { direction in
             switch direction {

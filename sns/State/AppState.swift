@@ -5,6 +5,18 @@ protocol ProfileCriteriaOption: CaseIterable, Identifiable, Hashable {
     var label: String { get }
 }
 
+enum AgeDisplay {
+    static let bounds = 18...85
+
+    static func label(for age: Int) -> String {
+        age >= bounds.upperBound ? "\(bounds.upperBound)+" : "\(age)"
+    }
+
+    static func rangeLabel(min: Int, max: Int) -> String {
+        "\(label(for: min))-\(label(for: max))"
+    }
+}
+
 extension ProfileCriteriaOption {
     var id: Self { self }
 }
@@ -122,7 +134,7 @@ struct MatchCriteriaSnapshot: Hashable {
     }
 
     var ageRangeSummary: String {
-        "\(preferredAgeMin)-\(preferredAgeMax)"
+        AgeDisplay.rangeLabel(min: preferredAgeMin, max: preferredAgeMax)
     }
 
     var preferredGendersSummary: String {
@@ -588,7 +600,7 @@ extension AppState {
     }
 
     var profileSummary: String {
-        "\(age), \(gender.label)"
+        "\(AgeDisplay.label(for: age)), \(gender.label)"
     }
 
     var substanceUseSummary: String {
