@@ -66,7 +66,6 @@ enum RootDestination: Hashable {
     case myCard
     case matchCriteria
     case weeklyBatchAvailability
-    case weeklyBatchEnroll
 }
 
 enum RootTab: String, CaseIterable, Identifiable {

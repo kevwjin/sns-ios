@@ -204,6 +204,67 @@ struct snsTests {
         #expect(state.weeklyAvailabilitySummary == "1 time window")
     }
 
+    @Test func weeklyBatchEnrollmentCapturesCriteriaAndAvailabilitySnapshot() {
+        let state = AppState.mock()
+        let calendar = testCalendar()
+        let day = testDate(year: 2026, month: 4, day: 30, hour: 12, calendar: calendar)
+        let enrolledAt = testDate(year: 2026, month: 5, day: 1, hour: 9, calendar: calendar)
+
+        state.matchingLocation = "Hayes Valley"
+        state.matchingRadiusMiles = 20
+        state.extendRadiusIfNeeded = true
+        state.preferredAgeMin = 23
+        state.preferredAgeMax = 31
+        state.preferredGenders = [.female, .nonbinary]
+        state.preferredSexualities = [.bisexual]
+        state.acceptedSubstanceUse = [.drinking]
+        state.matchPolicy = .anyEligibleMatchIfNoMutuals
+        state.weeklyAvailability = [WeeklyAvailabilityDay(date: day)]
+        state.addAvailabilityWindow(on: day, calendar: calendar)
+
+        state.enrollInWeeklyBatch(now: enrolledAt)
+
+        #expect(state.isEnrolledInWeeklyBatch)
+        #expect(state.weeklyBatchEnrollment?.enrolledAt == enrolledAt)
+        #expect(state.weeklyBatchEnrollment?.availability == state.weeklyAvailability)
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.location == "Hayes Valley")
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.radiusMiles == 20)
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.extendRadiusIfNeeded == true)
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.preferredAgeMin == 23)
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.preferredAgeMax == 31)
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.preferredGenders == Set([.female, .nonbinary]))
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.preferredSexualities == Set([.bisexual]))
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.acceptedSubstanceUse == Set([.drinking]))
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.matchPolicy == .anyEligibleMatchIfNoMutuals)
+        #expect(state.displayedWeeklyAvailabilitySummary == "1 time window")
+    }
+
+    @Test func weeklyBatchEnrollmentSnapshotDoesNotChangeWithNextWeekCriteriaEdits() {
+        let state = AppState.mock()
+        let calendar = testCalendar()
+        let day = testDate(year: 2026, month: 4, day: 30, hour: 12, calendar: calendar)
+
+        state.weeklyAvailability = [WeeklyAvailabilityDay(date: day)]
+        state.addAvailabilityWindow(on: day, calendar: calendar)
+        state.enrollInWeeklyBatch()
+
+        state.matchingLocation = "Mission"
+        state.matchingRadiusMiles = 30
+        state.acceptedSubstanceUse = [.drinking]
+        state.matchPolicy = .anyEligibleMatch
+        state.weeklyAvailability.removeAll()
+
+        #expect(state.currentMatchCriteriaSnapshot.location == "Mission")
+        #expect(state.currentMatchCriteriaSnapshot.radiusMiles == 30)
+        #expect(state.currentMatchCriteriaSnapshot.acceptedSubstanceUse == Set([.drinking]))
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.location == "SoMa")
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.radiusMiles == 10)
+        #expect(state.weeklyBatchEnrollment?.matchCriteria.acceptedSubstanceUse == Set(SubstanceUseCategory.allCases))
+        #expect(state.displayedWeeklyBatchCriteria == state.weeklyBatchEnrollment!.matchCriteria)
+        #expect(state.weeklyAvailabilitySummary == "No availability")
+        #expect(state.displayedWeeklyAvailabilitySummary == "1 time window")
+    }
+
     @Test func weeklyAvailabilitySupportsMultipleWindowsPerDay() {
         let state = AppState.mock()
         let calendar = testCalendar()

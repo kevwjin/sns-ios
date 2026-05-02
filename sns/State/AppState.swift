@@ -102,6 +102,81 @@ struct WeeklyAvailabilityDay: Identifiable, Hashable {
     }
 }
 
+struct MatchCriteriaSnapshot: Hashable {
+    var location: String
+    var radiusMiles: Int
+    var extendRadiusIfNeeded: Bool
+    var preferredAgeMin: Int
+    var preferredAgeMax: Int
+    var preferredGenders: Set<GenderIdentity>
+    var preferredSexualities: Set<SexualityOption>
+    var acceptedSubstanceUse: Set<SubstanceUseCategory>
+    var matchPolicy: MatchPolicy
+
+    var locationSummary: String {
+        location
+    }
+
+    var radiusSummary: String {
+        extendRadiusIfNeeded ? "Within \(radiusMiles) mi, flexible" : "Within \(radiusMiles) mi"
+    }
+
+    var ageRangeSummary: String {
+        "\(preferredAgeMin)-\(preferredAgeMax)"
+    }
+
+    var preferredGendersSummary: String {
+        Self.summary(for: preferredGenders, emptyLabel: "None selected", allLabel: "Open to all")
+    }
+
+    var preferredSexualitiesSummary: String {
+        Self.summary(for: preferredSexualities, emptyLabel: "None selected", allLabel: "Open to all")
+    }
+
+    var acceptedSubstanceUseSummary: String {
+        Self.summary(for: acceptedSubstanceUse, emptyLabel: "None selected", allLabel: "Open to all")
+    }
+
+    private static func summary<Option: ProfileCriteriaOption>(
+        for values: Set<Option>,
+        emptyLabel: String,
+        allLabel: String
+    ) -> String {
+        if values.isEmpty {
+            return emptyLabel
+        }
+
+        let allOptions = Array(Option.allCases)
+        if values.count == allOptions.count && allOptions.allSatisfy(values.contains) {
+            return allLabel
+        }
+
+        return allOptions
+            .filter(values.contains)
+            .map(\.label)
+            .joined(separator: ", ")
+    }
+}
+
+struct WeeklyBatchEnrollment: Identifiable, Hashable {
+    let id: UUID
+    var enrolledAt: Date
+    var matchCriteria: MatchCriteriaSnapshot
+    var availability: [WeeklyAvailabilityDay]
+
+    init(
+        id: UUID = UUID(),
+        enrolledAt: Date,
+        matchCriteria: MatchCriteriaSnapshot,
+        availability: [WeeklyAvailabilityDay]
+    ) {
+        self.id = id
+        self.enrolledAt = enrolledAt
+        self.matchCriteria = matchCriteria
+        self.availability = availability
+    }
+}
+
 struct AvailabilityMinuteWindow: Identifiable, Hashable {
     let id: UUID
     var startMinute: Int
@@ -293,6 +368,7 @@ final class AppState {
     var matchingRadiusMiles: Int
     var extendRadiusIfNeeded: Bool
     var weeklyAvailability: [WeeklyAvailabilityDay]
+    var weeklyBatchEnrollment: WeeklyBatchEnrollment?
 
     var fofSourceCount: Int {
         contacts.filter(\.useForFoFRecommendations).count
@@ -316,7 +392,8 @@ final class AppState {
         matchingLocation: String = "SoMa",
         matchingRadiusMiles: Int = 10,
         extendRadiusIfNeeded: Bool = false,
-        weeklyAvailability: [WeeklyAvailabilityDay] = []
+        weeklyAvailability: [WeeklyAvailabilityDay] = [],
+        weeklyBatchEnrollment: WeeklyBatchEnrollment? = nil
     ) {
         self.myCard = myCard
         self.contacts = contacts
@@ -336,6 +413,7 @@ final class AppState {
         self.matchingRadiusMiles = matchingRadiusMiles
         self.extendRadiusIfNeeded = extendRadiusIfNeeded
         self.weeklyAvailability = weeklyAvailability
+        self.weeklyBatchEnrollment = weeklyBatchEnrollment
     }
 
     static func mock() -> AppState {
@@ -362,8 +440,50 @@ extension AppState {
         weeklyAvailability.contains { $0.hasValidWindow }
     }
 
+    var isEnrolledInWeeklyBatch: Bool {
+        weeklyBatchEnrollment != nil
+    }
+
+    var currentMatchCriteriaSnapshot: MatchCriteriaSnapshot {
+        MatchCriteriaSnapshot(
+            location: matchingLocation,
+            radiusMiles: matchingRadiusMiles,
+            extendRadiusIfNeeded: extendRadiusIfNeeded,
+            preferredAgeMin: preferredAgeMin,
+            preferredAgeMax: preferredAgeMax,
+            preferredGenders: preferredGenders,
+            preferredSexualities: preferredSexualities,
+            acceptedSubstanceUse: acceptedSubstanceUse,
+            matchPolicy: matchPolicy
+        )
+    }
+
+    var displayedWeeklyBatchCriteria: MatchCriteriaSnapshot {
+        weeklyBatchEnrollment?.matchCriteria ?? currentMatchCriteriaSnapshot
+    }
+
+    var displayedWeeklyAvailabilitySummary: String {
+        guard let enrollment = weeklyBatchEnrollment else {
+            return weeklyAvailabilitySummary
+        }
+
+        return Self.weeklyAvailabilitySummary(for: enrollment.availability)
+    }
+
+    func enrollInWeeklyBatch(now: Date = Date()) {
+        weeklyBatchEnrollment = WeeklyBatchEnrollment(
+            enrolledAt: now,
+            matchCriteria: currentMatchCriteriaSnapshot,
+            availability: weeklyAvailability
+        )
+    }
+
     var weeklyAvailabilitySummary: String {
-        let validWindowCount = weeklyAvailability.reduce(0) { total, day in
+        Self.weeklyAvailabilitySummary(for: weeklyAvailability)
+    }
+
+    private static func weeklyAvailabilitySummary(for availability: [WeeklyAvailabilityDay]) -> String {
+        let validWindowCount = availability.reduce(0) { total, day in
             total + day.windows.filter(\.isValid).count
         }
 

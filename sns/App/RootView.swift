@@ -70,15 +70,15 @@ struct RootView: View {
 
         Section {
             NavigationLink(value: RootDestination.weeklyBatchAvailability) {
-                weeklyBatchRow
+                availabilityRow
             }
-            .accessibilityIdentifier("Weekly Batch Row")
+            .accessibilityIdentifier("Availability Row")
 
             NavigationLink(value: RootDestination.matchCriteria) {
                 valueRow(
-                    title: "Match Criteria",
-                    value: appState.acceptedSubstanceUseSummary,
-                    systemImage: "slider.horizontal.3"
+                    title: isEnrolledInBatch ? "Next Week Criteria" : "Match Criteria",
+                    value: isEnrolledInBatch ? "Changes apply next week" : appState.acceptedSubstanceUseSummary,
+                    systemImage: isEnrolledInBatch ? "calendar.badge.clock" : "slider.horizontal.3"
                 )
             }
             .accessibilityIdentifier("Match Criteria Row")
@@ -93,6 +93,21 @@ struct RootView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("Batch Info")
+            }
+        }
+
+        if !homeViewModel.hasMatchThisWeek {
+            Section {
+                SlideToEnrollControl(
+                    isEnrolledInBatch: isEnrolledInBatch,
+                    isEnabled: appState.hasCompleteWeeklyAvailability,
+                    resetTrigger: homeViewModel.sliderResetTrigger,
+                    disabledText: "Add availability"
+                ) {
+                    enrollInWeeklyBatch()
+                }
+            } footer: {
+                Text("Sliding to enroll locks availability and criteria for this week. Edits afterward apply next week.")
             }
         }
 
@@ -165,16 +180,16 @@ struct RootView: View {
         .accessibilityIdentifier("Anonymous Match Profile")
     }
 
-    private var weeklyBatchRow: some View {
+    private var availabilityRow: some View {
         HStack(spacing: 12) {
-            Image(systemName: "calendar.badge.clock")
+            Image(systemName: "calendar")
                 .foregroundStyle(.secondary)
                 .frame(width: 22)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text("Weekly Batch")
-                if appState.hasCompleteWeeklyAvailability || homeViewModel.isEnrolledInBatch {
-                    Text(appState.weeklyAvailabilitySummary)
+                Text("Availability")
+                if appState.hasCompleteWeeklyAvailability || isEnrolledInBatch {
+                    Text(appState.displayedWeeklyAvailabilitySummary)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -183,21 +198,25 @@ struct RootView: View {
             Spacer()
 
             Text(weeklyBatchStatusText)
-                .foregroundStyle(homeViewModel.isEnrolledInBatch ? .green : .secondary)
+                .foregroundStyle(isEnrolledInBatch ? .green : .secondary)
                 .multilineTextAlignment(.trailing)
         }
     }
 
     private var weeklyBatchStatusText: String {
-        if homeViewModel.isEnrolledInBatch {
+        if isEnrolledInBatch {
             return "Enrolled"
         }
 
         if appState.hasCompleteWeeklyAvailability {
-            return "Ready to enroll"
+            return "Ready"
         }
 
-        return "Set availability"
+        return "Set time"
+    }
+
+    private var isEnrolledInBatch: Bool {
+        homeViewModel.isEnrolledInBatch || appState.isEnrolledInWeeklyBatch
     }
 
     private func adaptiveAvailabilityGridHeight(for containerHeight: CGFloat) -> CGFloat {
@@ -251,24 +270,18 @@ struct RootView: View {
         case .myCard:
             MyCardDetailView(contact: $appState.myCard)
         case .matchCriteria:
-            MatchCriteriaView(appState: appState)
+            MatchCriteriaView(appState: appState, isEnrolledInBatch: isEnrolledInBatch)
         case .weeklyBatchAvailability:
             WeeklyBatchAvailabilityView(
                 appState: appState,
-                isEnrolledInBatch: homeViewModel.isEnrolledInBatch
-            ) {
-                router.open(.weeklyBatchEnroll, from: .match)
-            }
-        case .weeklyBatchEnroll:
-            WeeklyBatchEnrollView(
-                appState: appState,
-                isEnrolledInBatch: homeViewModel.isEnrolledInBatch,
-                resetTrigger: homeViewModel.sliderResetTrigger
-            ) {
-                homeViewModel.confirmEnrollment()
-                router.matchPath = [.weeklyBatchAvailability]
-            }
+                isEnrolledInBatch: isEnrolledInBatch
+            )
         }
+    }
+
+    private func enrollInWeeklyBatch() {
+        appState.enrollInWeeklyBatch()
+        homeViewModel.confirmEnrollment()
     }
 
     @ViewBuilder
@@ -337,9 +350,23 @@ struct RootView: View {
 
 private struct MatchCriteriaView: View {
     @Bindable var appState: AppState
+    let isEnrolledInBatch: Bool
 
     var body: some View {
         List {
+            if isEnrolledInBatch {
+                Section {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "lock.fill")
+                            .foregroundStyle(.secondary)
+                        Text("This week's criteria are locked. Changes here apply to next week's batch.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityIdentifier("Next Week Criteria Notice")
+                }
+            }
+
             Section("Location") {
                 NavigationLink(value: RootDestination.page(.location)) {
                     valueRow(title: "Location", value: appState.matchingLocation, systemImage: "location.fill")
@@ -553,7 +580,6 @@ private struct RootSearchView: View {
 private struct WeeklyBatchAvailabilityView: View {
     @Bindable var appState: AppState
     let isEnrolledInBatch: Bool
-    let onContinue: () -> Void
 
     var body: some View {
         GeometryReader { proxy in
@@ -563,24 +589,6 @@ private struct WeeklyBatchAvailabilityView: View {
                     isLocked: isEnrolledInBatch,
                     gridHeight: gridHeight(for: proxy.size.height)
                 )
-
-                if isEnrolledInBatch {
-                    Label("You're enrolled for this week.", systemImage: "checkmark.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.green)
-                        .accessibilityIdentifier("Weekly Batch Enrolled Status")
-                } else {
-                    Button {
-                        onContinue()
-                    } label: {
-                        Text("Continue")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!appState.hasCompleteWeeklyAvailability)
-                    .accessibilityIdentifier("Continue Enrollment")
-                }
             }
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -590,45 +598,8 @@ private struct WeeklyBatchAvailabilityView: View {
     }
 
     private func gridHeight(for containerHeight: CGFloat) -> CGFloat {
-        let reservedHeight: CGFloat = isEnrolledInBatch ? 190 : 220
-        return min(max(containerHeight - reservedHeight, 360), 560)
-    }
-}
-
-private struct WeeklyBatchEnrollView: View {
-    @Bindable var appState: AppState
-    let isEnrolledInBatch: Bool
-    let resetTrigger: Int
-    let onEnroll: () -> Void
-
-    var body: some View {
-        List {
-            Section("Availability") {
-                HStack {
-                    Label("Selected", systemImage: "calendar")
-                    Spacer()
-                    Text(appState.weeklyAvailabilitySummary)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Section {
-                SlideToEnrollControl(
-                    isEnrolledInBatch: isEnrolledInBatch,
-                    isEnabled: appState.hasCompleteWeeklyAvailability,
-                    resetTrigger: resetTrigger,
-                    disabledText: "Add availability"
-                ) {
-                    onEnroll()
-                }
-            } footer: {
-                Text("Enrollment is final.")
-            }
-        }
-        .navigationTitle("Enroll")
-        .navigationBarTitleDisplayMode(.inline)
-        .listStyle(.insetGrouped)
-        .accessibilityIdentifier("Weekly Batch Enroll Screen")
+        let reservedHeight: CGFloat = 130
+        return min(max(containerHeight - reservedHeight, 360), 620)
     }
 }
 

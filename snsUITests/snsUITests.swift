@@ -32,11 +32,11 @@ final class snsUITests: XCTestCase {
         XCTAssertFalse(app.tabBars.buttons["Network"].exists)
         XCTAssertTrue(app.tabBars.buttons["Profile"].exists)
         XCTAssertTrue(app.tabBars.buttons["Search"].exists)
-        XCTAssertTrue(app.staticTexts["Weekly Batch"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Weekly Batch Row"].exists)
-        XCTAssertTrue(app.staticTexts["Set availability"].exists)
+        XCTAssertTrue(app.staticTexts["Availability"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Availability Row"].exists)
+        XCTAssertTrue(app.staticTexts["Set time"].exists)
         XCTAssertFalse(app.otherElements["Weekly Availability Grid"].exists)
-        XCTAssertFalse(app.otherElements["Weekly Batch Enrollment Slider"].exists)
+        XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].exists)
         XCTAssertTrue(app.staticTexts["No match yet"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["No Match Mailbox Icon"].exists)
         XCTAssertFalse(app.staticTexts["Current Match"].exists)
@@ -171,9 +171,10 @@ final class snsUITests: XCTestCase {
         app.typeText("Ava")
         dismissSearch(in: app)
 
-        XCTAssertTrue(app.staticTexts["Weekly Batch"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Weekly Batch Row"].exists)
+        XCTAssertTrue(app.staticTexts["Availability"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Availability Row"].exists)
         XCTAssertFalse(app.otherElements["Weekly Availability Grid"].exists)
+        XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].exists)
         XCTAssertTrue(app.buttons["Match Criteria Row"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].isSelected)
     }
@@ -208,9 +209,10 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.searchFields["Quick Search"].waitForExistence(timeout: 2))
         dismissSearch(in: app)
 
-        XCTAssertTrue(app.staticTexts["Weekly Batch"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Weekly Batch Row"].exists)
+        XCTAssertTrue(app.staticTexts["Availability"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Availability Row"].exists)
         XCTAssertFalse(app.otherElements["Weekly Availability Grid"].exists)
+        XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].exists)
         XCTAssertTrue(app.buttons["Match Criteria Row"].exists)
         XCTAssertFalse(app.tabBars.buttons["Search"].isSelected)
     }
@@ -238,15 +240,16 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        XCTAssertTrue(app.buttons["Weekly Batch Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Availability Row"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.otherElements["Weekly Availability Grid"].exists)
-        XCTAssertFalse(app.otherElements["Weekly Batch Enrollment Slider"].exists)
-        app.buttons["Weekly Batch Row"].tap()
+        XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].exists)
+        app.buttons["Availability Row"].tap()
 
         let grid = app.otherElements["Weekly Availability Grid"]
         XCTAssertTrue(grid.waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Continue Enrollment"].exists)
-        XCTAssertFalse(app.buttons["Continue Enrollment"].isEnabled)
+        XCTAssertFalse(app.staticTexts["Will lock for this week"].exists)
+        XCTAssertFalse(app.staticTexts["SoMa · Within 10 mi"].exists)
+        XCTAssertFalse(app.otherElements["Weekly Batch Enrollment Slider"].exists)
         XCTAssertFalse(app.staticTexts["Slide to Enroll"].exists)
 
         let mondayColumn = app.otherElements["Availability Day Monday"]
@@ -257,31 +260,22 @@ final class snsUITests: XCTestCase {
         app.terminate()
         app.launch()
 
-        XCTAssertTrue(app.buttons["Weekly Batch Row"].waitForExistence(timeout: 2))
-        app.buttons["Weekly Batch Row"].tap()
+        XCTAssertTrue(app.buttons["Availability Row"].waitForExistence(timeout: 2))
+        app.buttons["Availability Row"].tap()
 
         let cleanGrid = app.otherElements["Weekly Availability Grid"]
         XCTAssertTrue(cleanGrid.waitForExistence(timeout: 2))
         longPressDragWithin(cleanGrid, from: CGVector(dx: 0.23, dy: 0.16), to: CGVector(dx: 0.23, dy: 0.24))
 
         XCTAssertTrue(app.otherElements["Active Availability Window"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Continue Enrollment"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Continue Enrollment"].isEnabled)
-
-        let tuesdayColumn = app.otherElements["Availability Day Tuesday"]
-        XCTAssertTrue(tuesdayColumn.waitForExistence(timeout: 2))
-        longPressDragWithin(cleanGrid, from: CGVector(dx: 0.35, dy: 0.28), to: CGVector(dx: 0.35, dy: 0.36))
-
-        XCTAssertTrue(app.otherElements["Filled Availability Window"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.otherElements["Active Availability Window"].exists)
-
-        XCTAssertTrue(app.buttons["Delete Availability Window"].waitForExistence(timeout: 2))
-        app.buttons["Delete Availability Window"].tap()
+        XCTAssertFalse(app.otherElements["Weekly Batch Enrollment Slider"].exists)
 
         XCTAssertTrue(app.staticTexts["1 time window"].waitForExistence(timeout: 2))
-        app.buttons["Continue Enrollment"].tap()
+        XCTAssertFalse(app.staticTexts["Will lock for this week"].exists)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Enrollment is final."].exists)
+        XCTAssertTrue(app.staticTexts["Slide to Enroll"].exists)
+        XCTAssertTrue(app.staticTexts["Sliding to enroll locks availability and criteria for this week. Edits afterward apply next week."].exists)
     }
 
     @MainActor
@@ -289,33 +283,83 @@ final class snsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        XCTAssertTrue(app.buttons["Weekly Batch Row"].waitForExistence(timeout: 2))
-        app.buttons["Weekly Batch Row"].tap()
+        XCTAssertTrue(app.buttons["Availability Row"].waitForExistence(timeout: 2))
+        app.buttons["Availability Row"].tap()
 
         let mondayColumn = app.otherElements["Availability Day Monday"]
         XCTAssertTrue(mondayColumn.waitForExistence(timeout: 2))
         longPressDragWithin(mondayColumn, from: CGVector(dx: 0.5, dy: 0.10), to: CGVector(dx: 0.5, dy: 0.18))
 
-        XCTAssertTrue(app.buttons["Continue Enrollment"].waitForExistence(timeout: 2))
-        app.buttons["Continue Enrollment"].tap()
-
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         let slider = app.otherElements["Weekly Batch Enrollment Slider"]
         XCTAssertTrue(slider.waitForExistence(timeout: 2))
         dragWithin(slider, from: CGVector(dx: 0.12, dy: 0.5), to: CGVector(dx: 0.94, dy: 0.5))
 
+        XCTAssertTrue(app.staticTexts["Enrolled"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Availability Row"].waitForExistence(timeout: 2))
+        app.buttons["Availability Row"].tap()
         XCTAssertTrue(app.navigationBars["Enrolled"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["You're enrolled for this week."].exists)
         XCTAssertFalse(app.buttons["Delete Availability Window"].exists)
         XCTAssertFalse(app.otherElements["Availability Start Handle"].exists)
         XCTAssertFalse(app.otherElements["Availability End Handle"].exists)
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.buttons["Weekly Batch Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["Availability Row"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Enrolled"].exists)
+        XCTAssertTrue(app.buttons["Match Criteria Row"].exists)
+        XCTAssertTrue(app.staticTexts["Next Week Criteria"].exists)
+        XCTAssertTrue(app.staticTexts["Changes apply next week"].exists)
 
-        app.buttons["Weekly Batch Row"].tap()
+        app.buttons["Availability Row"].tap()
         XCTAssertTrue(app.navigationBars["Enrolled"].waitForExistence(timeout: 2))
         XCTAssertFalse(app.buttons["Delete Availability Window"].exists)
+    }
+
+    @MainActor
+    func testCriteriaEditsAfterEnrollmentApplyToNextWeekOnly() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Availability Row"].waitForExistence(timeout: 2))
+        app.buttons["Availability Row"].tap()
+
+        let mondayColumn = app.otherElements["Availability Day Monday"]
+        XCTAssertTrue(mondayColumn.waitForExistence(timeout: 2))
+        longPressDragWithin(mondayColumn, from: CGVector(dx: 0.5, dy: 0.10), to: CGVector(dx: 0.5, dy: 0.18))
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let slider = app.otherElements["Weekly Batch Enrollment Slider"]
+        XCTAssertTrue(slider.waitForExistence(timeout: 2))
+        dragWithin(slider, from: CGVector(dx: 0.12, dy: 0.5), to: CGVector(dx: 0.94, dy: 0.5))
+
+        XCTAssertTrue(app.buttons["Match Criteria Row"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Next Week Criteria"].exists)
+        app.buttons["Match Criteria Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Match Criteria"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["This week's criteria are locked. Changes here apply to next week's batch."].exists)
+        XCTAssertTrue(app.buttons["Location Row"].waitForExistence(timeout: 2))
+        app.buttons["Location Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Location"].waitForExistence(timeout: 2))
+        let searchField = app.textFields["Address, neighborhood, or zip"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 2))
+        searchField.tap()
+        app.typeText("123 Market")
+        XCTAssertTrue(app.buttons["Location Suggestion 123 Market St, San Francisco, CA"].waitForExistence(timeout: 2))
+        app.buttons["Location Suggestion 123 Market St, San Francisco, CA"].tap()
+
+        app.navigationBars["Location"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Match Criteria"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Financial District"].waitForExistence(timeout: 2))
+
+        app.navigationBars["Match Criteria"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["Availability Row"].waitForExistence(timeout: 2))
+        app.buttons["Availability Row"].tap()
+
+        XCTAssertTrue(app.navigationBars["Enrolled"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["SoMa · Within 10 mi"].exists)
+        XCTAssertFalse(app.staticTexts["Financial District · Within 10 mi"].exists)
     }
 
     @MainActor

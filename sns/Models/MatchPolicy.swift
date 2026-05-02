@@ -1,6 +1,6 @@
 import Foundation
 
-enum MatchPolicy: String, CaseIterable {
+enum MatchPolicy: String, CaseIterable, Hashable {
     case mutualsOnly
     case anyEligibleMatch
     case anyEligibleMatchIfNoMutuals
