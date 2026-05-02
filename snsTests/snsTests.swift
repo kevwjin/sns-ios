@@ -139,6 +139,84 @@ struct snsTests {
         #expect(state.acceptedSubstanceUseSummary == "Drinking")
     }
 
+    @Test func matchCriteriaEditedSummaryUsesRelativeLabels() {
+        let calendar = testCalendar()
+        let now = testDate(year: 2026, month: 5, day: 31, hour: 12, calendar: calendar)
+
+        #expect(AppState.matchCriteriaEditedSummary(
+            updatedAt: testDate(year: 2026, month: 5, day: 31, hour: 9, calendar: calendar),
+            now: now,
+            calendar: calendar
+        ) == "Edited today")
+        #expect(AppState.matchCriteriaEditedSummary(
+            updatedAt: testDate(year: 2026, month: 5, day: 30, hour: 9, calendar: calendar),
+            now: now,
+            calendar: calendar
+        ) == "Edited yesterday")
+        #expect(AppState.matchCriteriaEditedSummary(
+            updatedAt: testDate(year: 2026, month: 5, day: 29, hour: 9, calendar: calendar),
+            now: now,
+            calendar: calendar
+        ) == "Edited 2 days ago")
+        #expect(AppState.matchCriteriaEditedSummary(
+            updatedAt: testDate(year: 2026, month: 5, day: 24, hour: 9, calendar: calendar),
+            now: now,
+            calendar: calendar
+        ) == "Edited last week")
+        #expect(AppState.matchCriteriaEditedSummary(
+            updatedAt: testDate(year: 2026, month: 5, day: 17, hour: 9, calendar: calendar),
+            now: now,
+            calendar: calendar
+        ) == "Edited 2 weeks ago")
+        #expect(AppState.matchCriteriaEditedSummary(
+            updatedAt: testDate(year: 2026, month: 4, day: 30, hour: 9, calendar: calendar),
+            now: now,
+            calendar: calendar
+        ) == "Edited last month")
+        #expect(AppState.matchCriteriaEditedSummary(
+            updatedAt: testDate(year: 2026, month: 3, day: 31, hour: 9, calendar: calendar),
+            now: now,
+            calendar: calendar
+        ) == "Edited 2 months ago")
+        #expect(AppState.matchCriteriaEditedSummary(
+            updatedAt: testDate(year: 2025, month: 5, day: 31, hour: 9, calendar: calendar),
+            now: now,
+            calendar: calendar
+        ) == "Edited last year")
+        #expect(AppState.matchCriteriaEditedSummary(
+            updatedAt: testDate(year: 2024, month: 5, day: 31, hour: 9, calendar: calendar),
+            now: now,
+            calendar: calendar
+        ) == "Edited 2 years ago")
+    }
+
+    @Test func matchCriteriaEditsRefreshTimestamp() {
+        let calendar = testCalendar()
+        let staleDate = testDate(year: 2020, month: 1, day: 1, hour: 9, calendar: calendar)
+        let state = AppState(
+            myCard: AppContact(name: "My Name"),
+            contacts: [],
+            groups: [],
+            matchCriteriaUpdatedAt: staleDate
+        )
+
+        func expectRefresh(_ edit: () -> Void) {
+            state.matchCriteriaUpdatedAt = staleDate
+            edit()
+            #expect(state.matchCriteriaUpdatedAt > staleDate)
+        }
+
+        expectRefresh { state.matchingLocation = "Mission" }
+        expectRefresh { state.matchingRadiusMiles = 20 }
+        expectRefresh { state.extendRadiusIfNeeded = true }
+        expectRefresh { state.preferredAgeMin = 22 }
+        expectRefresh { state.preferredAgeMax = 31 }
+        expectRefresh { state.preferredGenders = [.female] }
+        expectRefresh { state.preferredSexualities = [.bisexual] }
+        expectRefresh { state.acceptedSubstanceUse = [.drinking] }
+        expectRefresh { state.matchPolicy = .anyEligibleMatch }
+    }
+
     @Test func appStateUpdatesMatchingRadius() {
         let state = AppState.mock()
 

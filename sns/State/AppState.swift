@@ -370,15 +370,34 @@ final class AppState {
     var pronouns: PronounOption
     var sexuality: SexualityOption
     var substanceUse: Set<SubstanceUseCategory>
-    var preferredGenders: Set<GenderIdentity>
-    var preferredSexualities: Set<SexualityOption>
-    var acceptedSubstanceUse: Set<SubstanceUseCategory>
-    var preferredAgeMin: Int
-    var preferredAgeMax: Int
-    var matchPolicy: MatchPolicy
-    var matchingLocation: String
-    var matchingRadiusMiles: Int
-    var extendRadiusIfNeeded: Bool
+    var preferredGenders: Set<GenderIdentity> {
+        didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: preferredGenders) }
+    }
+    var preferredSexualities: Set<SexualityOption> {
+        didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: preferredSexualities) }
+    }
+    var acceptedSubstanceUse: Set<SubstanceUseCategory> {
+        didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: acceptedSubstanceUse) }
+    }
+    var preferredAgeMin: Int {
+        didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: preferredAgeMin) }
+    }
+    var preferredAgeMax: Int {
+        didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: preferredAgeMax) }
+    }
+    var matchPolicy: MatchPolicy {
+        didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: matchPolicy) }
+    }
+    var matchingLocation: String {
+        didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: matchingLocation) }
+    }
+    var matchingRadiusMiles: Int {
+        didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: matchingRadiusMiles) }
+    }
+    var extendRadiusIfNeeded: Bool {
+        didSet { markMatchCriteriaEditedIfChanged(from: oldValue, to: extendRadiusIfNeeded) }
+    }
+    var matchCriteriaUpdatedAt: Date
     var weeklyAvailability: [WeeklyAvailabilityDay]
     var weeklyBatchEnrollment: WeeklyBatchEnrollment?
 
@@ -404,6 +423,7 @@ final class AppState {
         matchingLocation: String = "SoMa",
         matchingRadiusMiles: Int = 10,
         extendRadiusIfNeeded: Bool = false,
+        matchCriteriaUpdatedAt: Date = Date(),
         weeklyAvailability: [WeeklyAvailabilityDay] = [],
         weeklyBatchEnrollment: WeeklyBatchEnrollment? = nil
     ) {
@@ -424,6 +444,7 @@ final class AppState {
         self.matchingLocation = matchingLocation
         self.matchingRadiusMiles = matchingRadiusMiles
         self.extendRadiusIfNeeded = extendRadiusIfNeeded
+        self.matchCriteriaUpdatedAt = matchCriteriaUpdatedAt
         self.weeklyAvailability = weeklyAvailability
         self.weeklyBatchEnrollment = weeklyBatchEnrollment
     }
@@ -444,6 +465,11 @@ final class AppState {
     func removeContact(_ contactID: AppContact.ID, fromGroupAt groupIndex: Int) {
         guard groups.indices.contains(groupIndex) else { return }
         groups[groupIndex].members.removeAll { $0.id == contactID }
+    }
+
+    private func markMatchCriteriaEditedIfChanged<Value: Equatable>(from oldValue: Value, to newValue: Value) {
+        guard oldValue != newValue else { return }
+        matchCriteriaUpdatedAt = Date()
     }
 }
 
@@ -480,6 +506,55 @@ extension AppState {
         }
 
         return Self.weeklyAvailabilitySummary(for: enrollment.availability)
+    }
+
+    var matchCriteriaEditedSummary: String {
+        Self.matchCriteriaEditedSummary(updatedAt: matchCriteriaUpdatedAt)
+    }
+
+    static func matchCriteriaEditedSummary(
+        updatedAt: Date,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String {
+        let configuredCalendar = WeeklyAvailabilityCalendar.configuredCalendar(from: calendar)
+        let updatedDay = configuredCalendar.startOfDay(for: updatedAt)
+        let currentDay = configuredCalendar.startOfDay(for: now)
+        let dayCount = max(
+            0,
+            configuredCalendar.dateComponents([.day], from: updatedDay, to: currentDay).day ?? 0
+        )
+
+        switch dayCount {
+        case 0:
+            return "Edited today"
+        case 1:
+            return "Edited yesterday"
+        case 2...6:
+            return "Edited \(dayCount) days ago"
+        case 7...13:
+            return "Edited last week"
+        case 14...29:
+            return "Edited \(dayCount / 7) weeks ago"
+        default:
+            let monthCount = max(
+                0,
+                configuredCalendar.dateComponents([.month], from: updatedDay, to: currentDay).month ?? 0
+            )
+
+            switch monthCount {
+            case 0:
+                return "Edited \(dayCount / 7) weeks ago"
+            case 1:
+                return "Edited last month"
+            case 2...11:
+                return "Edited \(monthCount) months ago"
+            case 12...23:
+                return "Edited last year"
+            default:
+                return "Edited \(monthCount / 12) years ago"
+            }
+        }
     }
 
     func enrollInWeeklyBatch(now: Date = Date()) {

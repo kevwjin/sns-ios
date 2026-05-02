@@ -77,7 +77,7 @@ struct RootView: View {
             NavigationLink(value: RootDestination.matchCriteria) {
                 valueRow(
                     title: isEnrolledInBatch ? "Next Week Criteria" : "Match Criteria",
-                    value: isEnrolledInBatch ? "Changes apply next week" : appState.acceptedSubstanceUseSummary,
+                    value: appState.matchCriteriaEditedSummary,
                     systemImage: isEnrolledInBatch ? "calendar.badge.clock" : "slider.horizontal.3"
                 )
             }
@@ -107,7 +107,7 @@ struct RootView: View {
             }
         } footer: {
             if !homeViewModel.hasMatchThisWeek {
-                Text("Sliding to enroll locks availability and criteria for this week. Edits afterward apply next week.")
+                Text("Sliding to enroll locks availability, criteria, and referral network for this week. Edits afterward apply next week.")
             }
         }
 

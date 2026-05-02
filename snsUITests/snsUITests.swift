@@ -41,6 +41,7 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["No Match Mailbox Icon"].exists)
         XCTAssertFalse(app.staticTexts["Current Match"].exists)
         XCTAssertTrue(app.buttons["Match Criteria Row"].exists)
+        XCTAssertTrue(app.staticTexts["Edited today"].exists)
         XCTAssertFalse(app.buttons["Location Row"].exists)
         XCTAssertFalse(app.staticTexts["Identity"].exists)
         XCTAssertFalse(app.staticTexts["Eligible Contacts"].exists)
@@ -275,7 +276,7 @@ final class snsUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Slide to Enroll"].exists)
-        XCTAssertTrue(app.staticTexts["Sliding to enroll locks availability and criteria for this week. Edits afterward apply next week."].exists)
+        XCTAssertTrue(app.staticTexts["Sliding to enroll locks availability, criteria, and referral network for this week. Edits afterward apply next week."].exists)
     }
 
     @MainActor
@@ -308,7 +309,7 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Enrolled"].exists)
         XCTAssertTrue(app.buttons["Match Criteria Row"].exists)
         XCTAssertTrue(app.staticTexts["Next Week Criteria"].exists)
-        XCTAssertTrue(app.staticTexts["Changes apply next week"].exists)
+        XCTAssertTrue(app.staticTexts["Edited today"].exists)
 
         app.buttons["Availability Row"].tap()
         XCTAssertTrue(app.navigationBars["Enrolled"].waitForExistence(timeout: 2))
