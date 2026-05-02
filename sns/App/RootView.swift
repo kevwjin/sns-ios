@@ -207,22 +207,14 @@ struct RootView: View {
 
             Spacer()
 
-            Text(weeklyBatchStatusText)
-                .foregroundStyle(isEnrolledInBatch ? .green : .secondary)
+            Text(availabilityStatusText)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.trailing)
         }
     }
 
-    private var weeklyBatchStatusText: String {
-        if isEnrolledInBatch {
-            return "Enrolled"
-        }
-
-        if appState.hasCompleteWeeklyAvailability {
-            return "Ready"
-        }
-
-        return "Set time"
+    private var availabilityStatusText: String {
+        appState.hasCompleteWeeklyAvailability ? "Set" : "Not set"
     }
 
     private var isEnrolledInBatch: Bool {
