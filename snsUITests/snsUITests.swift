@@ -324,7 +324,8 @@ final class snsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Availability Row"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Set"].exists)
         XCTAssertTrue(app.buttons["Match Criteria Row"].exists)
-        XCTAssertTrue(app.staticTexts["Next Week Criteria"].exists)
+        XCTAssertTrue(app.staticTexts["Match Criteria"].exists)
+        XCTAssertFalse(app.staticTexts["Next Week Criteria"].exists)
         XCTAssertTrue(app.staticTexts["Edited today"].exists)
 
         app.buttons["Availability Row"].tap()
@@ -350,7 +351,8 @@ final class snsUITests: XCTestCase {
         dragWithin(slider, from: CGVector(dx: 0.12, dy: 0.5), to: CGVector(dx: 0.94, dy: 0.5))
 
         XCTAssertTrue(app.buttons["Match Criteria Row"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Next Week Criteria"].exists)
+        XCTAssertTrue(app.staticTexts["Match Criteria"].exists)
+        XCTAssertFalse(app.staticTexts["Next Week Criteria"].exists)
         app.buttons["Match Criteria Row"].tap()
 
         XCTAssertTrue(app.navigationBars["Match Criteria"].waitForExistence(timeout: 2))

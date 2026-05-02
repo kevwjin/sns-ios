@@ -78,9 +78,9 @@ struct RootView: View {
 
             NavigationLink(value: RootDestination.matchCriteria) {
                 valueRow(
-                    title: isEnrolledInBatch ? "Next Week Criteria" : "Match Criteria",
+                    title: "Match Criteria",
                     value: appState.matchCriteriaEditedSummary,
-                    systemImage: isEnrolledInBatch ? "calendar.badge.clock" : "slider.horizontal.3"
+                    systemImage: "slider.horizontal.3"
                 )
             }
             .accessibilityIdentifier("Match Criteria Row")
