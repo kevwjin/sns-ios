@@ -1,5 +1,33 @@
 # sns
 
+## Project Report
+
+### Project Title
+
+sns
+
+### Team Members
+
+- Kevin Jin
+
+### App Description
+
+sns is a matchmaking app for friends. Instead of an endless swipe queue, the app organizes introductions into weekly batches so people can review a smaller, more intentional set of potential matches. A friend referral feature lets users recommend matches through people they trust, making each introduction more personal and grounded in an existing social circle.
+
+### Setup Instructions
+
+1. Install Xcode with iOS Simulator support.
+2. Clone the repository and open the project directory:
+
+   ```sh
+   git clone git@github.com:kevwjin/sns-ios.git
+   cd sns-ios
+   ```
+
+3. Open `sns.xcodeproj` in Xcode.
+4. Select the `sns` scheme and an available iOS Simulator.
+5. Build and run the app from Xcode.
+
 ## Testing
 
 Use the smallest test loop that gives confidence for the change you are making.
