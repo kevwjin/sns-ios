@@ -465,7 +465,6 @@ struct AccountSubstanceUseView: View {
     var body: some View {
         SubstanceUseAnswerView(
             title: category.label,
-            footer: "Choose what to show on your own profile.",
             selection: $selection
         )
     }
@@ -502,7 +501,6 @@ struct MatchSubstanceUsePreferenceView: View {
     var body: some View {
         SubstanceUseAnswerView(
             title: category.label,
-            footer: "Choose the answer you are open to for this match criterion.",
             selection: $selection
         )
     }
@@ -659,7 +657,6 @@ struct MultiSelectOptionsView<Option: ProfileCriteriaOption>: View {
 
 struct SubstanceUseAnswerView: View {
     let title: String
-    let footer: String
     @Binding var selection: SubstanceUseAnswer
 
     var body: some View {
@@ -670,21 +667,20 @@ struct SubstanceUseAnswerView: View {
                         selection = option
                     } label: {
                         HStack {
-                            Image(systemName: selection == option ? "largecircle.fill.circle" : "circle")
-                                .foregroundStyle(selection == option ? Color.accentColor : Color.secondary)
-                                .accessibilityHidden(true)
-
                             Text(option.label)
                                 .foregroundStyle(.primary)
 
                             Spacer()
+
+                            if selection == option {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
                         }
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("\(title) \(option.label) Substance Use Option")
                 }
-            } footer: {
-                Text(footer)
             }
         }
         .navigationTitle(title)
