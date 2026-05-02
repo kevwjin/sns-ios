@@ -82,6 +82,17 @@ struct RootView: View {
                 )
             }
             .accessibilityIdentifier("Match Criteria Row")
+
+            if !homeViewModel.hasMatchThisWeek {
+                SlideToEnrollControl(
+                    isEnrolledInBatch: isEnrolledInBatch,
+                    isEnabled: appState.hasCompleteWeeklyAvailability,
+                    resetTrigger: homeViewModel.sliderResetTrigger,
+                    disabledText: "Add availability"
+                ) {
+                    enrollInWeeklyBatch()
+                }
+            }
         } header: {
             HStack {
                 Text("This Week")
@@ -94,19 +105,8 @@ struct RootView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("Batch Info")
             }
-        }
-
-        if !homeViewModel.hasMatchThisWeek {
-            Section {
-                SlideToEnrollControl(
-                    isEnrolledInBatch: isEnrolledInBatch,
-                    isEnabled: appState.hasCompleteWeeklyAvailability,
-                    resetTrigger: homeViewModel.sliderResetTrigger,
-                    disabledText: "Add availability"
-                ) {
-                    enrollInWeeklyBatch()
-                }
-            } footer: {
+        } footer: {
+            if !homeViewModel.hasMatchThisWeek {
                 Text("Sliding to enroll locks availability and criteria for this week. Edits afterward apply next week.")
             }
         }
