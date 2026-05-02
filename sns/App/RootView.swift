@@ -611,7 +611,7 @@ private struct WeeklyBatchAvailabilityView: View {
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .navigationTitle(isEnrolledInBatch ? "Enrolled" : "Availability")
+        .navigationTitle("Availability")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -631,37 +631,19 @@ private struct WeeklyAvailabilityEditor: View {
         WeeklyAvailabilityCalendar.configuredCalendar()
     }
 
-    private var nextWeekTitle: String {
+    private var nextWeekMonthTitle: String {
         let dates = WeeklyAvailabilityCalendar.nextWeekDates(calendar: calendar)
-        guard let first = dates.first, let last = dates.last else {
+        guard let first = dates.first else {
             return "Next Week"
         }
 
-        let month = first.formatted(.dateTime.month(.wide))
-        let startDay = first.formatted(.dateTime.day())
-        let endDay = last.formatted(.dateTime.day())
-        return "\(month) \(startDay)-\(endDay)"
+        return first.formatted(.dateTime.month(.wide))
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Label("Availability", systemImage: "calendar")
-                    .font(.headline)
-
-                Spacer()
-
-                Text(appState.weeklyAvailabilitySummary)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Text(nextWeekTitle)
+            Text(nextWeekMonthTitle)
                 .font(.subheadline.weight(.semibold))
-
-            Text("Drag on the grid to add next week's availability.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
 
             WeeklyAvailabilityGrid(
                 appState: appState,
