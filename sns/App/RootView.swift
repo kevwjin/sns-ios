@@ -27,9 +27,9 @@ struct RootView: View {
                     }
                     .navigationDestination(for: RootDestination.self) { destination in
                         rootDestination(for: destination)
+                            .toolbarVisibility(.hidden, for: .tabBar)
                     }
                 }
-                .toolbarVisibility(router.matchPath.isEmpty ? .visible : .hidden, for: .tabBar)
             }
 
             Tab("Profile", systemImage: RootTab.profile.systemImage, value: RootTab.profile) {
@@ -37,9 +37,9 @@ struct RootView: View {
                     ProfileTabView(appState: appState)
                         .navigationDestination(for: RootDestination.self) { destination in
                             rootDestination(for: destination)
+                                .toolbarVisibility(.hidden, for: .tabBar)
                         }
                 }
-                .toolbarVisibility(router.profilePath.isEmpty ? .visible : .hidden, for: .tabBar)
             }
 
             Tab("Search", systemImage: RootTab.search.systemImage, value: RootTab.search, role: .search) {
@@ -52,9 +52,9 @@ struct RootView: View {
                     }
                     .navigationDestination(for: RootDestination.self) { destination in
                         rootDestination(for: destination)
+                            .toolbarVisibility(.hidden, for: .tabBar)
                     }
                 }
-                .toolbarVisibility(router.searchPath.isEmpty ? .visible : .hidden, for: .tabBar)
             }
             .accessibilityIdentifier("Search Tab")
         }
@@ -83,15 +83,13 @@ struct RootView: View {
             }
             .accessibilityIdentifier("Match Criteria Row")
 
-            if !homeViewModel.hasMatchThisWeek {
-                SlideToEnrollControl(
-                    isEnrolledInBatch: isEnrolledInBatch,
-                    isEnabled: appState.hasCompleteWeeklyAvailability,
-                    resetTrigger: homeViewModel.sliderResetTrigger,
-                    disabledText: "Add availability"
-                ) {
-                    enrollInWeeklyBatch()
-                }
+            SlideToEnrollControl(
+                isEnrolledInBatch: isEnrolledInBatch,
+                isEnabled: appState.hasCompleteWeeklyAvailability,
+                resetTrigger: homeViewModel.sliderResetTrigger,
+                disabledText: "Add availability"
+            ) {
+                enrollInWeeklyBatch()
             }
         } header: {
             HStack {
@@ -144,14 +142,7 @@ struct RootView: View {
     private func anonymousMatchProfile(profile: AnonymousMatchProfile) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .center, spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.accentColor.opacity(0.16))
-                    Image(systemName: "person.fill")
-                        .font(.title2)
-                        .foregroundStyle(Color.accentColor)
-                }
-                .frame(width: 52, height: 52)
+                matchAvatar
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("This week's match")
@@ -161,10 +152,16 @@ struct RootView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .background(.background, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .accessibilityIdentifier("Anonymous Match Summary Card")
 
             Text(profile.bio)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("Anonymous Match Bio")
 
             HStack(spacing: 8) {
                 ForEach(profile.interests, id: \.self) { interest in
@@ -175,9 +172,22 @@ struct RootView: View {
                         .background(Color.secondary.opacity(0.12), in: Capsule())
                 }
             }
+            .accessibilityIdentifier("Anonymous Match Interests")
         }
-        .padding(.vertical, 8)
+        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 18, trailing: 20))
+        .listRowBackground(Color.clear)
         .accessibilityIdentifier("Anonymous Match Profile")
+    }
+
+    private var matchAvatar: some View {
+        ZStack {
+            Circle()
+                .fill(Color.accentColor.opacity(0.16))
+            Image(systemName: "person.fill")
+                .font(.title2)
+                .foregroundStyle(Color.accentColor)
+        }
+        .frame(width: 52, height: 52)
     }
 
     private var availabilityRow: some View {

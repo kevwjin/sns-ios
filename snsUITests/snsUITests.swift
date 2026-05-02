@@ -74,7 +74,10 @@ final class snsUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["This week's match"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["26 · they/them · Hayes Valley"].exists)
+        XCTAssertTrue(app.staticTexts["Enjoys low-key coffee, neighborhood walks, and finding quiet places to talk."].exists)
         XCTAssertTrue(app.staticTexts["Coffee"].exists)
+        XCTAssertTrue(app.otherElements["Weekly Batch Enrollment Slider"].exists)
+        XCTAssertTrue(app.staticTexts["Enrolled"].exists)
         XCTAssertFalse(app.staticTexts["Alex Rivera"].exists)
         XCTAssertFalse(app.staticTexts["Current Match"].exists)
         XCTAssertFalse(app.buttons["Current Match"].exists)

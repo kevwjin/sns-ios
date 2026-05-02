@@ -57,7 +57,11 @@ struct GroupsView: View {
             }
         }
         .listStyle(.plain)
-        .searchable(text: $searchText, prompt: "Search Groups")
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search Groups"
+        )
         .environment(\.editMode, $editMode)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
