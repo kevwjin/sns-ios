@@ -138,7 +138,7 @@ struct RootView: View {
     }
 
     private func anonymousMatchProfile(profile: AnonymousMatchProfile) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .center, spacing: 14) {
                 matchAvatar
 
@@ -159,7 +159,7 @@ struct RootView: View {
             .foregroundStyle(.secondary)
             .symbolRenderingMode(.hierarchical)
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -171,7 +171,7 @@ struct RootView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 132)
+        .frame(minHeight: 132, alignment: .center)
         .padding(10)
         .accessibilityIdentifier("Anonymous Match Profile")
     }
@@ -180,9 +180,11 @@ struct RootView: View {
         ZStack {
             Circle()
                 .fill(Color.accentColor.opacity(0.16))
-            Image(systemName: "person.fill")
-                .font(.title2)
+
+            Text("HM")
+                .font(.system(size: 20, weight: .semibold, design: .serif))
                 .foregroundStyle(Color.accentColor)
+                .accessibilityIdentifier("Anonymous Match Initials Avatar")
         }
         .frame(width: 52, height: 52)
     }
